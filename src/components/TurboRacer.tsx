@@ -437,6 +437,58 @@ const TurboRacer = () => {
         style={{ height: "100vh", imageRendering: "auto" }}
       />
 
+      {/* Mobile Touch Controls */}
+      {gameState === "playing" && (
+        <div className="fixed bottom-20 right-4 z-50 select-none" style={{ touchAction: "none" }}>
+          {/* Up */}
+          <div className="flex justify-center mb-1">
+            <button
+              onTouchStart={() => { stateRef.current.keys.ArrowUp = true; }}
+              onTouchEnd={() => { stateRef.current.keys.ArrowUp = false; }}
+              onMouseDown={() => { stateRef.current.keys.ArrowUp = true; }}
+              onMouseUp={() => { stateRef.current.keys.ArrowUp = false; }}
+              className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold active:scale-90 transition-transform border-2"
+              style={{ background: "linear-gradient(135deg, #00e5ff, #2979ff)", borderColor: "#00e5ff", color: "#fff", boxShadow: "0 0 15px rgba(0,229,255,0.5)" }}
+            >
+              ▲
+            </button>
+          </div>
+          {/* Left, Down, Right */}
+          <div className="flex gap-1">
+            <button
+              onTouchStart={() => { stateRef.current.keys.ArrowLeft = true; }}
+              onTouchEnd={() => { stateRef.current.keys.ArrowLeft = false; }}
+              onMouseDown={() => { stateRef.current.keys.ArrowLeft = true; }}
+              onMouseUp={() => { stateRef.current.keys.ArrowLeft = false; }}
+              className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold active:scale-90 transition-transform border-2"
+              style={{ background: "linear-gradient(135deg, #ff6d00, #ffd600)", borderColor: "#ffd600", color: "#fff", boxShadow: "0 0 15px rgba(255,214,0,0.5)" }}
+            >
+              ◀
+            </button>
+            <button
+              onTouchStart={() => { stateRef.current.keys.ArrowDown = true; }}
+              onTouchEnd={() => { stateRef.current.keys.ArrowDown = false; }}
+              onMouseDown={() => { stateRef.current.keys.ArrowDown = true; }}
+              onMouseUp={() => { stateRef.current.keys.ArrowDown = false; }}
+              className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold active:scale-90 transition-transform border-2"
+              style={{ background: "linear-gradient(135deg, #e040fb, #d500f9)", borderColor: "#e040fb", color: "#fff", boxShadow: "0 0 15px rgba(224,64,251,0.5)" }}
+            >
+              ▼
+            </button>
+            <button
+              onTouchStart={() => { stateRef.current.keys.ArrowRight = true; }}
+              onTouchEnd={() => { stateRef.current.keys.ArrowRight = false; }}
+              onMouseDown={() => { stateRef.current.keys.ArrowRight = true; }}
+              onMouseUp={() => { stateRef.current.keys.ArrowRight = false; }}
+              className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold active:scale-90 transition-transform border-2"
+              style={{ background: "linear-gradient(135deg, #00e676, #76ff03)", borderColor: "#76ff03", color: "#fff", boxShadow: "0 0 15px rgba(118,255,3,0.5)" }}
+            >
+              ▶
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Developer Credit */}
       <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50">
         <p className="text-xs font-mono tracking-widest bg-background/50 px-4 py-1.5 rounded-full border border-orange-500/30 backdrop-blur-sm" style={{ color: 'rgba(200,160,100,0.7)' }}>
