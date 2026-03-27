@@ -437,6 +437,13 @@ const TurboRacer = () => {
         style={{ height: "100vh", imageRendering: "auto" }}
       />
 
+      {/* Developer Credit */}
+      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50">
+        <p className="text-muted-foreground/60 text-xs font-mono tracking-widest bg-background/50 px-4 py-1 rounded-full border border-border/30 backdrop-blur-sm">
+          Developed by <span className="text-primary font-bold">Zalak Chudasama</span>
+        </p>
+      </div>
+
       <AnimatePresence>
         {gameState === "select" && (
           <ThemeSelect onSelect={(id) => startGame(id)} />
