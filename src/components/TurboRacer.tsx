@@ -96,18 +96,12 @@ const TurboRacer = () => {
 
     if (isPlayer) {
       ctx.fillStyle = "#ffff00";
-      ctx.shadowColor = "#ffff00";
-      ctx.shadowBlur = 10;
       ctx.beginPath(); ctx.ellipse(x + 10, y + 2, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.ellipse(x + CAR_W - 10, y + 2, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 0;
     } else {
       ctx.fillStyle = "#ff3333";
-      ctx.shadowColor = "#ff0000";
-      ctx.shadowBlur = 8;
       ctx.beginPath(); ctx.ellipse(x + 10, y + CAR_H - 5, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.ellipse(x + CAR_W - 10, y + CAR_H - 5, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 0;
     }
     ctx.restore();
   };
@@ -119,13 +113,10 @@ const TurboRacer = () => {
     const dir = side === "left" ? 1 : -1;
     ctx.fillRect(x, y, dir * 25, 3);
     ctx.fillStyle = t.lampColor;
-    ctx.shadowColor = t.lampGlow;
-    ctx.shadowBlur = 20;
     ctx.beginPath();
     ctx.ellipse(x + dir * 25, y + 2, 6, 4, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = t.skyGlow;
-    ctx.shadowBlur = 0;
     ctx.beginPath();
     ctx.moveTo(x + dir * 20, y + 6);
     ctx.lineTo(x + dir * 10, y + 80);
@@ -137,17 +128,10 @@ const TurboRacer = () => {
 
   const drawCoin = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
     ctx.save();
-    ctx.shadowColor = "#ffcc00";
-    ctx.shadowBlur = 15;
-    const g = ctx.createRadialGradient(x + 15, y + 12, 2, x + 15, y + 15, 15);
-    g.addColorStop(0, "#fff7a0");
-    g.addColorStop(0.5, "#ffd700");
-    g.addColorStop(1, "#cc9900");
-    ctx.fillStyle = g;
+    ctx.fillStyle = "#ffd700";
     ctx.beginPath();
     ctx.ellipse(x + 15, y + 15, 14, 14, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
     ctx.fillStyle = "#886600";
     ctx.font = "bold 16px monospace";
     ctx.textAlign = "center";
@@ -173,13 +157,10 @@ const TurboRacer = () => {
         ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
         ctx.fill();
       } else if (p.type === "ember") {
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 6;
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, pt.size * 0.8, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
-        pt.y -= pt.speed * 2; // embers float up
+        pt.y -= pt.speed * 2;
         pt.x += (Math.random() - 0.5) * 2;
         if (pt.y < -10) { pt.y = s.gameH + 10; pt.x = Math.random() * GAME_WIDTH; }
       } else {
@@ -315,8 +296,11 @@ const TurboRacer = () => {
     s.score++;
     s.speed = 5 + Math.floor(s.score / 2000);
 
-    setScore(s.score);
-    setCoins(s.coins);
+    // Throttle React state updates to every 10 frames
+    if (s.score % 10 === 0) {
+      setScore(s.score);
+      setCoins(s.coins);
+    }
 
     if (s.score >= TARGET_SCORE) {
       s.running = false;

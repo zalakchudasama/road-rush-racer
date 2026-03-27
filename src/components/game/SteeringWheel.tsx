@@ -9,7 +9,7 @@ const SteeringWheel = ({ onSteer }: SteeringWheelProps) => {
   const knobRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef(false);
   const centerRef = useRef({ x: 0, y: 0 });
-  const RADIUS = 50;
+  const RADIUS = 55;
 
   const handleMove = useCallback((cx: number, cy: number) => {
     const dx = cx - centerRef.current.x;
@@ -24,7 +24,7 @@ const SteeringWheel = ({ onSteer }: SteeringWheelProps) => {
       knobRef.current.style.transform = `translate(${nx}px, ${ny}px)`;
     }
 
-    const threshold = 15;
+    const threshold = 8;
     onSteer({
       left: nx < -threshold,
       right: nx > threshold,
@@ -92,19 +92,18 @@ const SteeringWheel = ({ onSteer }: SteeringWheelProps) => {
   return (
     <div
       ref={wheelRef}
-      className="fixed bottom-24 right-8 z-50 select-none"
+      className="fixed bottom-16 right-4 z-50 select-none"
       style={{ touchAction: "none" }}
     >
       {/* Outer ring */}
       <div
         className="relative flex items-center justify-center"
         style={{
-          width: 130,
-          height: 130,
+          width: 140,
+          height: 140,
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
-          border: "3px solid rgba(255,255,255,0.15)",
-          boxShadow: "0 0 30px rgba(0,200,255,0.15), inset 0 0 20px rgba(0,0,0,0.3)",
+          background: "radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
+          border: "3px solid rgba(255,255,255,0.2)",
         }}
       >
         {/* Direction indicators */}
@@ -118,13 +117,13 @@ const SteeringWheel = ({ onSteer }: SteeringWheelProps) => {
           ref={knobRef}
           className="flex items-center justify-center"
           style={{
-            width: 52,
-            height: 52,
+            width: 56,
+            height: 56,
             borderRadius: "50%",
             background: "linear-gradient(135deg, #ff4444, #ff8800, #ffcc00, #44ff44, #4488ff, #cc44ff)",
             border: "2px solid rgba(255,255,255,0.5)",
-            boxShadow: "0 0 20px rgba(255,100,0,0.5), 0 2px 8px rgba(0,0,0,0.4)",
-            transition: "transform 0.05s ease-out",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+            transition: "transform 0.03s linear",
             cursor: "grab",
           }}
         >
