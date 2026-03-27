@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeSelect from "./game/ThemeSelect";
+import SteeringWheel from "./game/SteeringWheel";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
 
 const GAME_WIDTH = 420;
@@ -476,6 +477,18 @@ const TurboRacer = () => {
         style={{ height: "100vh", imageRendering: "auto" }}
       />
 
+      {/* Steering Wheel - Mobile */}
+      {gameState === "playing" && (
+        <SteeringWheel
+          onSteer={(dir) => {
+            const s = stateRef.current;
+            s.keys.ArrowLeft = dir.left;
+            s.keys.ArrowRight = dir.right;
+            s.keys.ArrowUp = dir.up;
+            s.keys.ArrowDown = dir.down;
+          }}
+        />
+      )}
 
       {/* Developer Credit */}
       <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50">
