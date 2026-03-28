@@ -14,6 +14,23 @@ const TARGET_SCORE = 20000;
 type GameState = "splash" | "select" | "playing" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
+interface GameCoin { x: number; y: number; value: number; color: string; label: string }
+
+const COIN_TYPES = [
+  { value: 50, color: "#cd7f32", label: "50", weight: 5 },   // bronze - common
+  { value: 100, color: "#c0c0c0", label: "100", weight: 3 }, // silver - medium
+  { value: 150, color: "#ffd700", label: "150", weight: 1 }, // gold - rare
+];
+
+const randomCoinType = () => {
+  const total = COIN_TYPES.reduce((s, c) => s + c.weight, 0);
+  let r = Math.random() * total;
+  for (const ct of COIN_TYPES) {
+    r -= ct.weight;
+    if (r <= 0) return ct;
+  }
+  return COIN_TYPES[0];
+};
 
 const SENSITIVITY_SPEED = { 1: 4, 2: 5, 3: 7 } as Record<number, number>;
 
@@ -24,6 +41,10 @@ const TurboRacer = () => {
   const [coins, setCoins] = useState(0);
   const [theme, setTheme] = useState<GameTheme>(THEMES.rain);
   const [sensitivity, setSensitivity] = useState(2);
+  const [lastScore, setLastScore] = useState(0);
+  const [lastCoins, setLastCoins] = useState(0);
+  const [coinCollections, setCoinCollections] = useState<{ value: number; id: number }[]>([]);
+  const coinIdRef = useRef(0);
   const stateRef = useRef({
     running: false,
     score: 0,
@@ -34,7 +55,7 @@ const TurboRacer = () => {
     baseSpeed: 5,
     keys: {} as Record<string, boolean>,
     enemies: [] as { x: number; y: number }[],
-    coins_: [] as { x: number; y: number }[],
+    coins_: [] as GameCoin[],
     particles: [] as Particle[],
     lineOffset: 0,
     lampOffset: 0,
@@ -131,16 +152,31 @@ const TurboRacer = () => {
     ctx.restore();
   };
 
-  const drawCoin = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+  const drawCoin = (ctx: CanvasRenderingContext2D, x: number, y: number, coin: GameCoin) => {
     ctx.save();
-    ctx.fillStyle = "#ffd700";
+    // Outer glow for high value
+    if (coin.value >= 150) {
+      ctx.fillStyle = "rgba(255,215,0,0.2)";
+      ctx.beginPath();
+      ctx.ellipse(x + 15, y + 15, 20, 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Coin body
+    ctx.fillStyle = coin.color;
     ctx.beginPath();
     ctx.ellipse(x + 15, y + 15, 14, 14, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#886600";
-    ctx.font = "bold 16px monospace";
+    // Inner ring
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(x + 15, y + 15, 10, 10, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    // Value text
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 9px monospace";
     ctx.textAlign = "center";
-    ctx.fillText("$", x + 15, y + 21);
+    ctx.fillText(coin.label, x + 15, y + 18);
     ctx.restore();
   };
 
@@ -197,6 +233,14 @@ const TurboRacer = () => {
   const boxCollide = (ax: number, ay: number, aw: number, ah: number, bx: number, by: number, bw: number, bh: number) =>
     ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 
+  const addCoinPopup = useCallback((value: number) => {
+    const id = ++coinIdRef.current;
+    setCoinCollections(prev => [...prev.slice(-4), { value, id }]);
+    setTimeout(() => {
+      setCoinCollections(prev => prev.filter(c => c.id !== id));
+    }, 1200);
+  }, []);
+
   const loop = useCallback(() => {
     const s = stateRef.current;
     const canvas = canvasRef.current;
@@ -245,19 +289,30 @@ const TurboRacer = () => {
 
     drawParticles(ctx, s);
 
+    // Coins with priority values
     for (const c of s.coins_) {
       c.y += s.speed;
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, c.x, c.y, 30, 30)) {
         s.coins++;
-        s.score += 50;
+        s.score += c.value;
+        addCoinPopup(c.value);
+        // Respawn with new type
+        const newType = randomCoinType();
         c.y = -300 - Math.random() * 300;
         c.x = 30 + Math.random() * (GAME_WIDTH - 90);
+        c.value = newType.value;
+        c.color = newType.color;
+        c.label = newType.label;
       }
       if (c.y > H + 30) {
+        const newType = randomCoinType();
         c.y = -300 - Math.random() * 200;
         c.x = 30 + Math.random() * (GAME_WIDTH - 90);
+        c.value = newType.value;
+        c.color = newType.color;
+        c.label = newType.label;
       }
-      drawCoin(ctx, c.x, c.y);
+      drawCoin(ctx, c.x, c.y, c);
     }
 
     for (const e of s.enemies) {
@@ -273,6 +328,8 @@ const TurboRacer = () => {
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
         ctx.fill();
         s.running = false;
+        setLastScore(s.score);
+        setLastCoins(s.coins);
         setScore(s.score);
         setCoins(s.coins);
         setGameState("lost");
@@ -298,12 +355,14 @@ const TurboRacer = () => {
 
     if (s.score >= TARGET_SCORE) {
       s.running = false;
+      setLastScore(s.score);
+      setLastCoins(s.coins);
       setGameState("won");
       return;
     }
 
     s.rafId = requestAnimationFrame(loop);
-  }, []);
+  }, [addCoinPopup]);
 
   const startGame = useCallback((themeId: ThemeId) => {
     const s = stateRef.current;
@@ -334,8 +393,16 @@ const TurboRacer = () => {
     for (let i = 0; i < 3; i++) {
       s.enemies.push({ x: 20 + Math.random() * (GAME_WIDTH - 90), y: (i + 1) * -300 });
     }
-    for (let i = 0; i < 3; i++) {
-      s.coins_.push({ x: 30 + Math.random() * (GAME_WIDTH - 90), y: (i + 1) * -400 });
+    // Spawn coins with priority values
+    for (let i = 0; i < 4; i++) {
+      const ct = randomCoinType();
+      s.coins_.push({
+        x: 30 + Math.random() * (GAME_WIDTH - 90),
+        y: (i + 1) * -350,
+        value: ct.value,
+        color: ct.color,
+        label: ct.label,
+      });
     }
     const pc = selectedTheme.particles;
     for (let i = 0; i < pc.count; i++) {
@@ -351,10 +418,10 @@ const TurboRacer = () => {
     setGameState("playing");
     setScore(0);
     setCoins(0);
+    setCoinCollections([]);
     s.rafId = requestAnimationFrame(loop);
   }, [loop, sensitivity]);
 
-  // Update base speed when sensitivity changes mid-game
   useEffect(() => {
     stateRef.current.baseSpeed = SENSITIVITY_SPEED[sensitivity] || 5;
   }, [sensitivity]);
@@ -375,7 +442,6 @@ const TurboRacer = () => {
     };
   }, []);
 
-  // Canvas sizing
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -389,18 +455,33 @@ const TurboRacer = () => {
       {gameState === "playing" && (
         <>
           <div className="fixed top-4 left-4 z-50 space-y-1">
-            <div className="text-foreground text-lg font-mono tracking-wider bg-background/80 px-3 py-1 rounded-md border border-primary/30">
+            <div className="text-foreground text-sm font-mono tracking-wider bg-background/80 px-2 py-1 rounded-md border border-primary/30">
               🏁 Score: <span className="text-primary font-bold">{score}</span>
             </div>
-            <div className="text-accent text-lg font-mono tracking-wider bg-background/80 px-3 py-1 rounded-md border border-accent/30">
-              💰 Coins: <span className="font-bold">{coins}</span>
+            <div className="text-foreground text-sm font-mono tracking-wider bg-background/80 px-2 py-1 rounded-md border border-accent/30">
+              💰 Coins: <span className="font-bold" style={{ color: "#ffd700" }}>{coins}</span>
             </div>
-            <div className="text-muted-foreground text-sm font-mono bg-background/80 px-3 py-1 rounded-md border border-border">
+            <div className="text-muted-foreground text-xs font-mono bg-background/80 px-2 py-1 rounded-md border border-border">
               {theme.emoji} {theme.name}
             </div>
+            {lastScore > 0 && (
+              <div className="text-muted-foreground text-xs font-mono bg-background/80 px-2 py-1 rounded-md border border-border">
+                📊 Last: {lastScore.toLocaleString()} | 💰 {lastCoins}
+              </div>
+            )}
           </div>
 
-          <div className="fixed top-4 right-4 z-50 w-40">
+          {/* Coin value legend */}
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
+            {COIN_TYPES.map((ct) => (
+              <div key={ct.value} className="flex items-center gap-1 bg-background/80 px-2 py-0.5 rounded-full border border-border text-xs font-mono">
+                <span className="w-3 h-3 rounded-full inline-block" style={{ background: ct.color }} />
+                <span className="text-foreground">{ct.value}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="fixed top-4 right-4 z-50 w-32">
             <div className="text-muted-foreground text-xs font-mono mb-1 text-right">
               {Math.min(100, Math.floor((score / TARGET_SCORE) * 100))}% to 🏆
             </div>
@@ -414,8 +495,25 @@ const TurboRacer = () => {
             </div>
           </div>
 
-          {/* Settings */}
           <SettingsButton sensitivity={sensitivity} onSensitivityChange={setSensitivity} />
+
+          {/* Coin collection popups */}
+          <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-1">
+            <AnimatePresence>
+              {coinCollections.map((c) => (
+                <motion.div
+                  key={c.id}
+                  initial={{ opacity: 0, y: 20, scale: 0.5 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -30, scale: 0.5 }}
+                  className="font-bold text-lg font-mono"
+                  style={{ color: c.value >= 150 ? "#ffd700" : c.value >= 100 ? "#c0c0c0" : "#cd7f32" }}
+                >
+                  +{c.value} 💰
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
         </>
       )}
 
@@ -425,7 +523,7 @@ const TurboRacer = () => {
         style={{ height: "100vh", imageRendering: "auto" }}
       />
 
-      {/* Arrow Button Controls - Mobile & PC */}
+      {/* Controls: Steering left, Up/Down right */}
       {gameState === "playing" && (
         <GameControls
           sensitivity={sensitivity}
@@ -449,7 +547,6 @@ const TurboRacer = () => {
               background: "linear-gradient(135deg, #ffd700, #ff8c00, #ff4500, #ffd700)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
-              textShadow: "0 0 20px rgba(255,69,0,0.4)",
             }}
           >
             Zalak Chudasama
@@ -478,31 +575,34 @@ const TurboRacer = () => {
               initial={{ scale: 0, rotate: -20 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", damping: 10 }}
-              className="bg-background/95 border-2 border-accent rounded-2xl px-10 py-8 text-center max-w-xs"
+              className="bg-background/95 border-2 border-accent rounded-2xl px-8 py-6 text-center max-w-xs"
               style={{ boxShadow: "0 0 60px rgba(255,200,0,0.4)" }}
             >
               <motion.div
-                className="text-7xl mb-4"
+                className="text-6xl mb-3"
                 animate={{ rotate: [0, -10, 10, -10, 0], scale: [1, 1.1, 1] }}
                 transition={{ repeat: Infinity, duration: 2 }}
               >
                 🏆
               </motion.div>
-              <h2 className="text-3xl font-bold text-accent mb-2">YOU WIN!</h2>
-              <p className="text-foreground text-lg mb-1">Score: <span className="font-bold text-primary">{score.toLocaleString()}</span></p>
-              <p className="text-accent mb-6">Coins: {coins} 💰</p>
-              <div className="flex justify-center gap-2 mb-6 text-2xl">
+              <h2 className="text-2xl font-bold text-accent mb-2">YOU WIN!</h2>
+              <p className="text-foreground text-base mb-1">Score: <span className="font-bold text-primary">{score.toLocaleString()}</span></p>
+              <p className="text-foreground mb-1">Coins: <span className="font-bold" style={{ color: "#ffd700" }}>{coins}</span> 💰</p>
+              {lastScore > 0 && lastScore !== score && (
+                <p className="text-muted-foreground text-xs mb-3">Previous: {lastScore.toLocaleString()} | 💰 {lastCoins}</p>
+              )}
+              <div className="flex justify-center gap-2 mb-4 text-2xl">
                 {["⭐", "🌟", "⭐", "🌟", "⭐"].map((s, i) => (
                   <motion.span key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.15 }}>
                     {s}
                   </motion.span>
                 ))}
               </div>
-              <div className="flex gap-3 justify-center">
+              <div className="flex gap-2 justify-center">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 rounded-xl font-bold text-sm text-primary-foreground"
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, hsl(var(--accent)), #ffaa00)" }}
                   onClick={() => startGame(theme.id)}
                 >
@@ -511,10 +611,10 @@ const TurboRacer = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 rounded-xl font-bold text-sm border-2 border-border text-foreground"
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
                   onClick={() => setGameState("select")}
                 >
-                  🗺️ CHANGE ROAD
+                  🗺️ CHANGE
                 </motion.button>
               </div>
             </motion.div>
@@ -533,24 +633,27 @@ const TurboRacer = () => {
               initial={{ scale: 1.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", damping: 12 }}
-              className="bg-background/95 border-2 border-destructive rounded-2xl px-10 py-8 text-center max-w-xs"
+              className="bg-background/95 border-2 border-destructive rounded-2xl px-8 py-6 text-center max-w-xs"
               style={{ boxShadow: "0 0 40px rgba(255,50,50,0.3)" }}
             >
               <motion.div
-                className="text-6xl mb-4"
+                className="text-5xl mb-3"
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ repeat: 2, duration: 0.3 }}
               >
                 💥
               </motion.div>
-              <h2 className="text-3xl font-bold text-destructive mb-2">GAME OVER</h2>
-              <p className="text-foreground text-lg mb-1">Score: <span className="font-bold text-primary">{score.toLocaleString()}</span></p>
-              <p className="text-accent mb-6">Coins: {coins} 💰</p>
-              <div className="flex gap-3 justify-center">
+              <h2 className="text-2xl font-bold text-destructive mb-2">GAME OVER</h2>
+              <p className="text-foreground text-base mb-1">Score: <span className="font-bold text-primary">{score.toLocaleString()}</span></p>
+              <p className="text-foreground mb-1">Coins: <span className="font-bold" style={{ color: "#ffd700" }}>{coins}</span> 💰</p>
+              {lastScore > 0 && lastScore !== score && (
+                <p className="text-muted-foreground text-xs mb-3">Previous: {lastScore.toLocaleString()} | 💰 {lastCoins}</p>
+              )}
+              <div className="flex gap-2 justify-center mt-4">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 rounded-xl font-bold text-sm text-primary-foreground"
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, hsl(var(--primary)), #ff6644)" }}
                   onClick={() => startGame(theme.id)}
                 >
@@ -559,10 +662,10 @@ const TurboRacer = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 rounded-xl font-bold text-sm border-2 border-border text-foreground"
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
                   onClick={() => setGameState("select")}
                 >
-                  🗺️ CHANGE ROAD
+                  🗺️ CHANGE
                 </motion.button>
               </div>
             </motion.div>
