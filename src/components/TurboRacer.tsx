@@ -1,7 +1,9 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeSelect from "./game/ThemeSelect";
-import SteeringWheel from "./game/SteeringWheel";
+import SplashScreen from "./game/SplashScreen";
+import GameControls from "./game/GameControls";
+import SettingsButton from "./game/SettingsButton";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
 
 const GAME_WIDTH = 420;
@@ -9,17 +11,19 @@ const CAR_W = 50;
 const CAR_H = 80;
 const TARGET_SCORE = 20000;
 
-type GameState = "select" | "playing" | "won" | "lost";
+type GameState = "splash" | "select" | "playing" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
 
+const SENSITIVITY_SPEED = { 1: 4, 2: 5, 3: 7 } as Record<number, number>;
+
 const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<GameState>("select");
+  const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
   const [theme, setTheme] = useState<GameTheme>(THEMES.rain);
-  const touchRef = useRef({ startX: 0, startY: 0, active: false });
+  const [sensitivity, setSensitivity] = useState(2);
   const stateRef = useRef({
     running: false,
     score: 0,
@@ -27,6 +31,7 @@ const TurboRacer = () => {
     x: 185,
     y: 0,
     speed: 5,
+    baseSpeed: 5,
     keys: {} as Record<string, boolean>,
     enemies: [] as { x: number; y: number }[],
     coins_: [] as { x: number; y: number }[],
@@ -164,7 +169,6 @@ const TurboRacer = () => {
         pt.x += (Math.random() - 0.5) * 2;
         if (pt.y < -10) { pt.y = s.gameH + 10; pt.x = Math.random() * GAME_WIDTH; }
       } else {
-        // sand
         ctx.globalAlpha = 0.4;
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, pt.size * 0.6, 0, Math.PI * 2);
@@ -204,7 +208,6 @@ const TurboRacer = () => {
 
     ctx.clearRect(0, 0, W, H);
 
-    // Road background with theme colors
     const roadGrad = ctx.createLinearGradient(0, 0, W, 0);
     roadGrad.addColorStop(0, t.road.top);
     roadGrad.addColorStop(0.5, t.road.mid);
@@ -212,11 +215,9 @@ const TurboRacer = () => {
     ctx.fillStyle = roadGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // Sky glow overlay
     ctx.fillStyle = t.skyGlow;
     ctx.fillRect(0, 0, W, H);
 
-    // Road edges
     ctx.strokeStyle = t.edgeColor;
     ctx.lineWidth = 3;
     ctx.setLineDash([20, 15]);
@@ -225,7 +226,6 @@ const TurboRacer = () => {
     ctx.beginPath(); ctx.moveTo(W - 8, 0); ctx.lineTo(W - 8, H); ctx.stroke();
     ctx.setLineDash([]);
 
-    // Center lines
     s.lineOffset += s.speed;
     if (s.lineOffset > 150) s.lineOffset -= 150;
     ctx.strokeStyle = t.lineColor;
@@ -235,7 +235,6 @@ const TurboRacer = () => {
     ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
     ctx.setLineDash([]);
 
-    // Street lights
     s.lampOffset += s.speed;
     if (s.lampOffset > 250) s.lampOffset -= 250;
     for (let i = -1; i < 5; i++) {
@@ -244,10 +243,8 @@ const TurboRacer = () => {
       drawStreetLight(ctx, W - 19, ly, "right", t);
     }
 
-    // Particles
     drawParticles(ctx, s);
 
-    // Coins
     for (const c of s.coins_) {
       c.y += s.speed;
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, c.x, c.y, 30, 30)) {
@@ -263,7 +260,6 @@ const TurboRacer = () => {
       drawCoin(ctx, c.x, c.y);
     }
 
-    // Enemies
     for (const e of s.enemies) {
       e.y += s.speed;
       if (e.y > H + 80) {
@@ -284,19 +280,17 @@ const TurboRacer = () => {
       }
     }
 
-    // Player
     drawCar3D(ctx, s.x, s.y, "#ff0000", true);
 
-    // Movement
-    if (s.keys.ArrowLeft && s.x > 15) s.x -= s.speed;
-    if (s.keys.ArrowRight && s.x < GAME_WIDTH - CAR_W - 15) s.x += s.speed;
-    if (s.keys.ArrowUp && s.y > 0) s.y -= s.speed;
-    if (s.keys.ArrowDown && s.y < H - CAR_H) s.y += s.speed;
+    const moveSpeed = s.speed;
+    if (s.keys.ArrowLeft && s.x > 15) s.x -= moveSpeed;
+    if (s.keys.ArrowRight && s.x < GAME_WIDTH - CAR_W - 15) s.x += moveSpeed;
+    if (s.keys.ArrowUp && s.y > 0) s.y -= moveSpeed;
+    if (s.keys.ArrowDown && s.y < H - CAR_H) s.y += moveSpeed;
 
     s.score++;
-    s.speed = 5 + Math.floor(s.score / 2000);
+    s.speed = s.baseSpeed + Math.floor(s.score / 2000);
 
-    // Throttle React state updates to every 10 frames
     if (s.score % 10 === 0) {
       setScore(s.score);
       setCoins(s.coins);
@@ -329,7 +323,8 @@ const TurboRacer = () => {
     s.coins = 0;
     s.x = 185;
     s.y = canvas.height - 150;
-    s.speed = 5;
+    s.baseSpeed = SENSITIVITY_SPEED[sensitivity] || 5;
+    s.speed = s.baseSpeed;
     s.lineOffset = 0;
     s.lampOffset = 0;
     s.enemies = [];
@@ -342,7 +337,6 @@ const TurboRacer = () => {
     for (let i = 0; i < 3; i++) {
       s.coins_.push({ x: 30 + Math.random() * (GAME_WIDTH - 90), y: (i + 1) * -400 });
     }
-    // Init particles
     const pc = selectedTheme.particles;
     for (let i = 0; i < pc.count; i++) {
       s.particles.push({
@@ -358,7 +352,12 @@ const TurboRacer = () => {
     setScore(0);
     setCoins(0);
     s.rafId = requestAnimationFrame(loop);
-  }, [loop]);
+  }, [loop, sensitivity]);
+
+  // Update base speed when sensitivity changes mid-game
+  useEffect(() => {
+    stateRef.current.baseSpeed = SENSITIVITY_SPEED[sensitivity] || 5;
+  }, [sensitivity]);
 
   useEffect(() => {
     const s = stateRef.current;
@@ -376,50 +375,12 @@ const TurboRacer = () => {
     };
   }, []);
 
-  // Touch drag controls
+  // Canvas sizing
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.width = GAME_WIDTH;
     canvas.height = window.innerHeight;
-
-    const onTouchStart = (e: TouchEvent) => {
-      e.preventDefault();
-      const t = e.touches[0];
-      touchRef.current = { startX: t.clientX, startY: t.clientY, active: true };
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      e.preventDefault();
-      if (!touchRef.current.active || !stateRef.current.running) return;
-      const t = e.touches[0];
-      const dx = t.clientX - touchRef.current.startX;
-      const dy = t.clientY - touchRef.current.startY;
-      const s = stateRef.current;
-      const threshold = 5;
-      s.keys.ArrowLeft = dx < -threshold;
-      s.keys.ArrowRight = dx > threshold;
-      s.keys.ArrowUp = dy < -threshold;
-      s.keys.ArrowDown = dy > threshold;
-      touchRef.current.startX = t.clientX;
-      touchRef.current.startY = t.clientY;
-    };
-    const onTouchEnd = () => {
-      touchRef.current.active = false;
-      const s = stateRef.current;
-      s.keys.ArrowLeft = false;
-      s.keys.ArrowRight = false;
-      s.keys.ArrowUp = false;
-      s.keys.ArrowDown = false;
-    };
-
-    canvas.addEventListener("touchstart", onTouchStart, { passive: false });
-    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
-    canvas.addEventListener("touchend", onTouchEnd);
-    return () => {
-      canvas.removeEventListener("touchstart", onTouchStart);
-      canvas.removeEventListener("touchmove", onTouchMove);
-      canvas.removeEventListener("touchend", onTouchEnd);
-    };
   }, []);
 
   return (
@@ -452,6 +413,9 @@ const TurboRacer = () => {
               />
             </div>
           </div>
+
+          {/* Settings */}
+          <SettingsButton sensitivity={sensitivity} onSensitivityChange={setSensitivity} />
         </>
       )}
 
@@ -461,10 +425,11 @@ const TurboRacer = () => {
         style={{ height: "100vh", imageRendering: "auto" }}
       />
 
-      {/* Steering Wheel - Mobile */}
+      {/* Arrow Button Controls - Mobile & PC */}
       {gameState === "playing" && (
-        <SteeringWheel
-          onSteer={(dir) => {
+        <GameControls
+          sensitivity={sensitivity}
+          onControl={(dir) => {
             const s = stateRef.current;
             s.keys.ArrowLeft = dir.left;
             s.keys.ArrowRight = dir.right;
@@ -493,6 +458,10 @@ const TurboRacer = () => {
       </div>
 
       <AnimatePresence>
+        {gameState === "splash" && (
+          <SplashScreen onComplete={() => setGameState("select")} />
+        )}
+
         {gameState === "select" && (
           <ThemeSelect onSelect={(id) => startGame(id)} />
         )}
