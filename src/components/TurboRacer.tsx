@@ -602,6 +602,55 @@ const TurboRacer = () => {
           />
         )}
 
+        {gameState === "paused" && (
+          <motion.div
+            key="paused"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center z-40"
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", damping: 15 }}
+              className="bg-background/95 border-2 border-primary rounded-2xl px-8 py-6 text-center max-w-xs"
+              style={{ boxShadow: "0 0 40px rgba(255,150,0,0.3)" }}
+            >
+              <div className="text-5xl mb-3">⏸️</div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">PAUSED</h2>
+              <p className="text-muted-foreground text-sm mb-1">Score: <span className="text-primary font-bold">{score.toLocaleString()}</span></p>
+              <p className="text-muted-foreground text-sm mb-4">💰 Coins: <span className="font-bold" style={{ color: "#ffd700" }}>{coins}</span></p>
+              <div className="flex gap-2 justify-center flex-wrap">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
+                  style={{ background: "linear-gradient(135deg, #44dd44, #22aa22)" }}
+                  onClick={() => {
+                    stateRef.current.running = true;
+                    setGameState("playing");
+                    stateRef.current.rafId = requestAnimationFrame(loop);
+                  }}
+                >
+                  ▶️ RESUME
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
+                  onClick={() => {
+                    stateRef.current.running = false;
+                    setGameState("select");
+                  }}
+                >
+                  🚪 QUIT
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {gameState === "won" && (
           <motion.div
             key="win"
