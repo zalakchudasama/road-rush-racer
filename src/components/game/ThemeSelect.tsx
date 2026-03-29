@@ -3,6 +3,7 @@ import { THEMES, ThemeId } from "./themes";
 
 interface Props {
   onSelect: (id: ThemeId) => void;
+  onGarage?: () => void;
 }
 
 const themeList: ThemeId[] = ["rain", "lava", "ice", "desert"];
