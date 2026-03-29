@@ -580,7 +580,7 @@ const TurboRacer = () => {
         )}
 
         {gameState === "select" && (
-          <ThemeSelect onSelect={(id) => startGame(id)} />
+          <ThemeSelect onSelect={(id) => startGame(id)} onGarage={() => setGameState("garage")} />
         )}
 
         {gameState === "garage" && (
