@@ -8,7 +8,7 @@ interface Props {
 
 const themeList: ThemeId[] = ["rain", "lava", "ice", "desert"];
 
-const ThemeSelect = ({ onSelect }: Props) => (
+const ThemeSelect = ({ onSelect, onGarage }: Props) => (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
