@@ -13,7 +13,7 @@ const CAR_W = 50;
 const CAR_H = 80;
 const TARGET_SCORE = 20000;
 
-type GameState = "splash" | "select" | "garage" | "playing" | "won" | "lost";
+type GameState = "splash" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
 interface GameCoin { x: number; y: number; value: number; color: string; label: string }
