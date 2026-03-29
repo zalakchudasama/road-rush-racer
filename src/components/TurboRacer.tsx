@@ -515,6 +515,18 @@ const TurboRacer = () => {
             </div>
           </div>
 
+          {/* Pause Button */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => {
+              stateRef.current.running = false;
+              setGameState("paused");
+            }}
+            className="fixed top-4 right-[160px] z-50 w-10 h-10 rounded-full bg-background/80 border-2 border-primary/50 flex items-center justify-center text-lg"
+          >
+            ⏸️
+          </motion.button>
+
           <SettingsButton sensitivity={sensitivity} onSensitivityChange={setSensitivity} />
 
           {/* Coin collection popups */}
