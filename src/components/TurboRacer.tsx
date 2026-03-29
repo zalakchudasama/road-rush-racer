@@ -4,22 +4,24 @@ import ThemeSelect from "./game/ThemeSelect";
 import SplashScreen from "./game/SplashScreen";
 import GameControls from "./game/GameControls";
 import SettingsButton from "./game/SettingsButton";
+import CarGarage from "./game/CarGarage";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
+import { CARS, CarData, getWallet, addToWallet, getSelectedCar } from "./game/cars";
 
 const GAME_WIDTH = 420;
 const CAR_W = 50;
 const CAR_H = 80;
 const TARGET_SCORE = 20000;
 
-type GameState = "splash" | "select" | "playing" | "won" | "lost";
+type GameState = "splash" | "select" | "garage" | "playing" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
 interface GameCoin { x: number; y: number; value: number; color: string; label: string }
 
 const COIN_TYPES = [
-  { value: 50, color: "#cd7f32", label: "50", weight: 5 },   // bronze - common
-  { value: 100, color: "#c0c0c0", label: "100", weight: 3 }, // silver - medium
-  { value: 150, color: "#ffd700", label: "150", weight: 1 }, // gold - rare
+  { value: 50, color: "#cd7f32", label: "50", weight: 5 },
+  { value: 100, color: "#c0c0c0", label: "100", weight: 3 },
+  { value: 150, color: "#ffd700", label: "150", weight: 1 },
 ];
 
 const randomCoinType = () => {
@@ -34,6 +36,11 @@ const randomCoinType = () => {
 
 const SENSITIVITY_SPEED = { 1: 4, 2: 5, 3: 7 } as Record<number, number>;
 
+const getCarData = (): CarData => {
+  const id = getSelectedCar();
+  return CARS.find(c => c.id === id) || CARS[0];
+};
+
 const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<GameState>("splash");
@@ -43,6 +50,8 @@ const TurboRacer = () => {
   const [sensitivity, setSensitivity] = useState(2);
   const [lastScore, setLastScore] = useState(0);
   const [lastCoins, setLastCoins] = useState(0);
+  const [totalWallet, setTotalWallet] = useState(getWallet);
+  const [currentCar, setCurrentCar] = useState<CarData>(getCarData);
   const [coinCollections, setCoinCollections] = useState<{ value: number; id: number }[]>([]);
   const coinIdRef = useRef(0);
   const stateRef = useRef({
@@ -62,6 +71,7 @@ const TurboRacer = () => {
     rafId: 0,
     gameH: 700,
     theme: THEMES.rain as GameTheme,
+    car: CARS[0] as CarData,
   });
 
   const drawCar3D = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, isPlayer: boolean) => {
@@ -73,9 +83,10 @@ const TurboRacer = () => {
 
     const grad = ctx.createLinearGradient(x, y, x + CAR_W, y + CAR_H);
     if (isPlayer) {
-      grad.addColorStop(0, "#ff4444");
-      grad.addColorStop(0.5, "#cc0000");
-      grad.addColorStop(1, "#880000");
+      const car = stateRef.current.car;
+      grad.addColorStop(0, car.color1);
+      grad.addColorStop(0.5, car.color2);
+      grad.addColorStop(1, car.color3);
     } else {
       grad.addColorStop(0, color);
       grad.addColorStop(1, "#885500");
@@ -86,8 +97,9 @@ const TurboRacer = () => {
 
     const roofGrad = ctx.createLinearGradient(x, y, x + CAR_W, y + 30);
     if (isPlayer) {
-      roofGrad.addColorStop(0, "#ff6666");
-      roofGrad.addColorStop(1, "#cc0000");
+      const car = stateRef.current.car;
+      roofGrad.addColorStop(0, car.color1);
+      roofGrad.addColorStop(1, car.color2);
     } else {
       roofGrad.addColorStop(0, color);
       roofGrad.addColorStop(1, "#aa6600");
@@ -154,25 +166,21 @@ const TurboRacer = () => {
 
   const drawCoin = (ctx: CanvasRenderingContext2D, x: number, y: number, coin: GameCoin) => {
     ctx.save();
-    // Outer glow for high value
     if (coin.value >= 150) {
       ctx.fillStyle = "rgba(255,215,0,0.2)";
       ctx.beginPath();
       ctx.ellipse(x + 15, y + 15, 20, 20, 0, 0, Math.PI * 2);
       ctx.fill();
     }
-    // Coin body
     ctx.fillStyle = coin.color;
     ctx.beginPath();
     ctx.ellipse(x + 15, y + 15, 14, 14, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Inner ring
     ctx.strokeStyle = "rgba(255,255,255,0.4)";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.ellipse(x + 15, y + 15, 10, 10, 0, 0, Math.PI * 2);
     ctx.stroke();
-    // Value text
     ctx.fillStyle = "#fff";
     ctx.font = "bold 9px monospace";
     ctx.textAlign = "center";
@@ -289,14 +297,12 @@ const TurboRacer = () => {
 
     drawParticles(ctx, s);
 
-    // Coins with priority values
     for (const c of s.coins_) {
       c.y += s.speed;
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, c.x, c.y, 30, 30)) {
         s.coins++;
         s.score += c.value;
         addCoinPopup(c.value);
-        // Respawn with new type
         const newType = randomCoinType();
         c.y = -300 - Math.random() * 300;
         c.x = 30 + Math.random() * (GAME_WIDTH - 90);
@@ -328,6 +334,9 @@ const TurboRacer = () => {
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
         ctx.fill();
         s.running = false;
+        // Save coins to wallet
+        addToWallet(s.coins * 10 + Math.floor(s.score / 10));
+        setTotalWallet(getWallet());
         setLastScore(s.score);
         setLastCoins(s.coins);
         setScore(s.score);
@@ -346,7 +355,7 @@ const TurboRacer = () => {
     if (s.keys.ArrowDown && s.y < H - CAR_H) s.y += moveSpeed;
 
     s.score++;
-    s.speed = s.baseSpeed + Math.floor(s.score / 2000);
+    s.speed = s.baseSpeed + s.car.speed + Math.floor(s.score / 2000);
 
     if (s.score % 10 === 0) {
       setScore(s.score);
@@ -355,6 +364,8 @@ const TurboRacer = () => {
 
     if (s.score >= TARGET_SCORE) {
       s.running = false;
+      addToWallet(s.coins * 10 + Math.floor(s.score / 10));
+      setTotalWallet(getWallet());
       setLastScore(s.score);
       setLastCoins(s.coins);
       setGameState("won");
@@ -371,6 +382,8 @@ const TurboRacer = () => {
 
     const selectedTheme = THEMES[themeId];
     s.theme = selectedTheme;
+    s.car = getCarData();
+    setCurrentCar(s.car);
     setTheme(selectedTheme);
 
     canvas.width = GAME_WIDTH;
@@ -383,7 +396,7 @@ const TurboRacer = () => {
     s.x = 185;
     s.y = canvas.height - 150;
     s.baseSpeed = SENSITIVITY_SPEED[sensitivity] || 5;
-    s.speed = s.baseSpeed;
+    s.speed = s.baseSpeed + s.car.speed;
     s.lineOffset = 0;
     s.lampOffset = 0;
     s.enemies = [];
@@ -393,7 +406,6 @@ const TurboRacer = () => {
     for (let i = 0; i < 3; i++) {
       s.enemies.push({ x: 20 + Math.random() * (GAME_WIDTH - 90), y: (i + 1) * -300 });
     }
-    // Spawn coins with priority values
     for (let i = 0; i < 4; i++) {
       const ct = randomCoinType();
       s.coins_.push({
@@ -449,6 +461,11 @@ const TurboRacer = () => {
     canvas.height = window.innerHeight;
   }, []);
 
+  const refreshCar = () => {
+    setCurrentCar(getCarData());
+    setTotalWallet(getWallet());
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background relative select-none">
       {/* HUD */}
@@ -460,6 +477,9 @@ const TurboRacer = () => {
             </div>
             <div className="text-foreground text-sm font-mono tracking-wider bg-background/80 px-2 py-1 rounded-md border border-accent/30">
               💰 Coins: <span className="font-bold" style={{ color: "#ffd700" }}>{coins}</span>
+            </div>
+            <div className="text-muted-foreground text-xs font-mono bg-background/80 px-2 py-1 rounded-md border border-border">
+              {currentCar.emoji} {currentCar.name}
             </div>
             <div className="text-muted-foreground text-xs font-mono bg-background/80 px-2 py-1 rounded-md border border-border">
               {theme.emoji} {theme.name}
@@ -523,7 +543,7 @@ const TurboRacer = () => {
         style={{ height: "100vh", imageRendering: "auto" }}
       />
 
-      {/* Controls: Steering left, Up/Down right */}
+      {/* Controls */}
       {gameState === "playing" && (
         <GameControls
           sensitivity={sensitivity}
@@ -563,6 +583,13 @@ const TurboRacer = () => {
           <ThemeSelect onSelect={(id) => startGame(id)} />
         )}
 
+        {gameState === "garage" && (
+          <CarGarage
+            onBack={() => setGameState("select")}
+            onCarChanged={refreshCar}
+          />
+        )}
+
         {gameState === "won" && (
           <motion.div
             key="win"
@@ -587,10 +614,8 @@ const TurboRacer = () => {
               </motion.div>
               <h2 className="text-2xl font-bold text-accent mb-2">YOU WIN!</h2>
               <p className="text-foreground text-base mb-1">Score: <span className="font-bold text-primary">{score.toLocaleString()}</span></p>
-              <p className="text-foreground mb-1">Coins: <span className="font-bold" style={{ color: "#ffd700" }}>{coins}</span> 💰</p>
-              {lastScore > 0 && lastScore !== score && (
-                <p className="text-muted-foreground text-xs mb-3">Previous: {lastScore.toLocaleString()} | 💰 {lastCoins}</p>
-              )}
+              <p className="text-foreground mb-1">Coins earned: <span className="font-bold" style={{ color: "#ffd700" }}>{(coins * 10 + Math.floor(score / 10)).toLocaleString()}</span> 💰</p>
+              <p className="text-muted-foreground text-xs mb-3">Wallet: 💰 {totalWallet.toLocaleString()}</p>
               <div className="flex justify-center gap-2 mb-4 text-2xl">
                 {["⭐", "🌟", "⭐", "🌟", "⭐"].map((s, i) => (
                   <motion.span key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.15 }}>
@@ -598,11 +623,11 @@ const TurboRacer = () => {
                   </motion.span>
                 ))}
               </div>
-              <div className="flex gap-2 justify-center">
+              <div className="flex gap-2 justify-center flex-wrap">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-5 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
+                  className="px-4 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, hsl(var(--accent)), #ffaa00)" }}
                   onClick={() => startGame(theme.id)}
                 >
@@ -611,7 +636,16 @@ const TurboRacer = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
+                  className="px-4 py-2.5 rounded-xl font-bold text-sm"
+                  style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
+                  onClick={() => setGameState("garage")}
+                >
+                  🏪 GARAGE
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
                   onClick={() => setGameState("select")}
                 >
                   🗺️ CHANGE
@@ -645,15 +679,13 @@ const TurboRacer = () => {
               </motion.div>
               <h2 className="text-2xl font-bold text-destructive mb-2">GAME OVER</h2>
               <p className="text-foreground text-base mb-1">Score: <span className="font-bold text-primary">{score.toLocaleString()}</span></p>
-              <p className="text-foreground mb-1">Coins: <span className="font-bold" style={{ color: "#ffd700" }}>{coins}</span> 💰</p>
-              {lastScore > 0 && lastScore !== score && (
-                <p className="text-muted-foreground text-xs mb-3">Previous: {lastScore.toLocaleString()} | 💰 {lastCoins}</p>
-              )}
-              <div className="flex gap-2 justify-center mt-4">
+              <p className="text-foreground mb-1">Coins earned: <span className="font-bold" style={{ color: "#ffd700" }}>{(coins * 10 + Math.floor(score / 10)).toLocaleString()}</span> 💰</p>
+              <p className="text-muted-foreground text-xs mb-3">Wallet: 💰 {totalWallet.toLocaleString()}</p>
+              <div className="flex gap-2 justify-center flex-wrap mt-2">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-5 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
+                  className="px-4 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, hsl(var(--primary)), #ff6644)" }}
                   onClick={() => startGame(theme.id)}
                 >
@@ -662,7 +694,16 @@ const TurboRacer = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
+                  className="px-4 py-2.5 rounded-xl font-bold text-sm"
+                  style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
+                  onClick={() => setGameState("garage")}
+                >
+                  🏪 GARAGE
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
                   onClick={() => setGameState("select")}
                 >
                   🗺️ CHANGE
