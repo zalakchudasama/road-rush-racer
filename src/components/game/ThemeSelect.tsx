@@ -3,11 +3,12 @@ import { THEMES, ThemeId } from "./themes";
 
 interface Props {
   onSelect: (id: ThemeId) => void;
+  onGarage?: () => void;
 }
 
 const themeList: ThemeId[] = ["rain", "lava", "ice", "desert"];
 
-const ThemeSelect = ({ onSelect }: Props) => (
+const ThemeSelect = ({ onSelect, onGarage }: Props) => (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -40,6 +41,18 @@ const ThemeSelect = ({ onSelect }: Props) => (
           );
         })}
       </div>
+
+      {onGarage && (
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onGarage}
+          className="mb-4 px-5 py-2 rounded-xl font-bold text-sm"
+          style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
+        >
+          🏪 CAR GARAGE
+        </motion.button>
+      )}
 
       <div className="text-muted-foreground text-xs space-y-0.5">
         <p>← → ↑ ↓ Arrow Keys to drive</p>
