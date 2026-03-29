@@ -556,7 +556,7 @@ const TurboRacer = () => {
       />
 
       {/* Controls */}
-      {gameState === "playing" && (
+      {(gameState === "playing" || gameState === "paused") && (
         <GameControls
           sensitivity={sensitivity}
           onControl={(dir) => {
