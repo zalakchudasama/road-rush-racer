@@ -42,6 +42,18 @@ const ThemeSelect = ({ onSelect, onGarage }: Props) => (
         })}
       </div>
 
+      {onGarage && (
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onGarage}
+          className="mb-4 px-5 py-2 rounded-xl font-bold text-sm"
+          style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
+        >
+          🏪 CAR GARAGE
+        </motion.button>
+      )}
+
       <div className="text-muted-foreground text-xs space-y-0.5">
         <p>← → ↑ ↓ Arrow Keys to drive</p>
         <p>Dodge enemies • Collect coins • Score 20,000 to win!</p>
