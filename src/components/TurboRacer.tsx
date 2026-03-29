@@ -13,7 +13,7 @@ const CAR_W = 50;
 const CAR_H = 80;
 const TARGET_SCORE = 20000;
 
-type GameState = "splash" | "select" | "garage" | "playing" | "won" | "lost";
+type GameState = "splash" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
 interface GameCoin { x: number; y: number; value: number; color: string; label: string }
@@ -515,6 +515,18 @@ const TurboRacer = () => {
             </div>
           </div>
 
+          {/* Pause Button */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => {
+              stateRef.current.running = false;
+              setGameState("paused");
+            }}
+            className="fixed top-4 right-[160px] z-50 w-10 h-10 rounded-full bg-background/80 border-2 border-primary/50 flex items-center justify-center text-lg"
+          >
+            ⏸️
+          </motion.button>
+
           <SettingsButton sensitivity={sensitivity} onSensitivityChange={setSensitivity} />
 
           {/* Coin collection popups */}
@@ -544,7 +556,7 @@ const TurboRacer = () => {
       />
 
       {/* Controls */}
-      {gameState === "playing" && (
+      {(gameState === "playing" || gameState === "paused") && (
         <GameControls
           sensitivity={sensitivity}
           onControl={(dir) => {
@@ -588,6 +600,55 @@ const TurboRacer = () => {
             onBack={() => setGameState("select")}
             onCarChanged={refreshCar}
           />
+        )}
+
+        {gameState === "paused" && (
+          <motion.div
+            key="paused"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center z-40"
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", damping: 15 }}
+              className="bg-background/95 border-2 border-primary rounded-2xl px-8 py-6 text-center max-w-xs"
+              style={{ boxShadow: "0 0 40px rgba(255,150,0,0.3)" }}
+            >
+              <div className="text-5xl mb-3">⏸️</div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">PAUSED</h2>
+              <p className="text-muted-foreground text-sm mb-1">Score: <span className="text-primary font-bold">{score.toLocaleString()}</span></p>
+              <p className="text-muted-foreground text-sm mb-4">💰 Coins: <span className="font-bold" style={{ color: "#ffd700" }}>{coins}</span></p>
+              <div className="flex gap-2 justify-center flex-wrap">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
+                  style={{ background: "linear-gradient(135deg, #44dd44, #22aa22)" }}
+                  onClick={() => {
+                    stateRef.current.running = true;
+                    setGameState("playing");
+                    stateRef.current.rafId = requestAnimationFrame(loop);
+                  }}
+                >
+                  ▶️ RESUME
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
+                  onClick={() => {
+                    stateRef.current.running = false;
+                    setGameState("select");
+                  }}
+                >
+                  🚪 QUIT
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
 
         {gameState === "won" && (
