@@ -16,7 +16,7 @@ const SettingsButton = ({ sensitivity, onSensitivityChange }: Props) => {
       {/* Settings gear button */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed top-4 right-[180px] z-50 w-10 h-10 rounded-full flex items-center justify-center border border-border bg-background/80 backdrop-blur-sm"
+        className="fixed top-16 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center border border-border bg-background/80 backdrop-blur-sm"
         style={{ touchAction: "none" }}
       >
         <span className="text-lg">⚙️</span>
