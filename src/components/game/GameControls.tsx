@@ -96,49 +96,9 @@ const GameControls = ({ onControl, sensitivity }: GameControlsProps) => {
 
   return (
     <>
-      {/* LEFT SIDE: Steering wheel for Left/Right */}
+      {/* LEFT SIDE: Up & Down arrows */}
       <div
-        ref={wheelRef}
-        className="fixed left-3 z-50"
-        style={{ bottom: 100, touchAction: "none" }}
-      >
-        <div
-          className="relative flex items-center justify-center"
-          style={{
-            width: 130,
-            height: 56,
-            borderRadius: 28,
-            background: "rgba(255,255,255,0.06)",
-            border: "2px solid rgba(255,255,255,0.2)",
-          }}
-        >
-          {/* Direction labels */}
-          <span className="absolute left-2 text-sm opacity-50 font-bold" style={{ color: "#4488ff" }}>◀</span>
-          <span className="absolute right-2 text-sm opacity-50 font-bold" style={{ color: "#ffaa00" }}>▶</span>
-
-          {/* Knob */}
-          <div
-            ref={knobRef}
-            className="flex items-center justify-center cursor-grab"
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #ff4444, #ff8800, #ffcc00, #44ff44, #4488ff, #cc44ff)",
-              border: "2px solid rgba(255,255,255,0.5)",
-              boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
-              transition: "transform 0.04s linear",
-            }}
-          >
-            <span className="text-lg">🏎️</span>
-          </div>
-        </div>
-        <p className="text-center text-[10px] mt-1 tracking-wider opacity-40 text-foreground">STEER</p>
-      </div>
-
-      {/* RIGHT SIDE: Up & Down arrows */}
-      <div
-        className="fixed right-3 z-50 flex flex-col items-center gap-3"
+        className="fixed left-3 z-50 flex flex-col items-center gap-3"
         style={{ bottom: 90 }}
       >
         <button
@@ -178,6 +138,43 @@ const GameControls = ({ onControl, sensitivity }: GameControlsProps) => {
           <span className="text-white text-xl font-bold">▼</span>
         </button>
         <p className="text-[10px] tracking-wider opacity-40 text-foreground">SPEED</p>
+      </div>
+
+      {/* RIGHT SIDE: Steering wheel for Left/Right */}
+      <div
+        ref={wheelRef}
+        className="fixed right-3 z-50"
+        style={{ bottom: 100, touchAction: "none" }}
+      >
+        <div
+          className="relative flex items-center justify-center"
+          style={{
+            width: 130,
+            height: 56,
+            borderRadius: 28,
+            background: "rgba(255,255,255,0.06)",
+            border: "2px solid rgba(255,255,255,0.2)",
+          }}
+        >
+          <span className="absolute left-2 text-sm opacity-50 font-bold" style={{ color: "#4488ff" }}>◀</span>
+          <span className="absolute right-2 text-sm opacity-50 font-bold" style={{ color: "#ffaa00" }}>▶</span>
+          <div
+            ref={knobRef}
+            className="flex items-center justify-center cursor-grab"
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: "50%",
+              background: "linear-gradient(135deg, #ff4444, #ff8800, #ffcc00, #44ff44, #4488ff, #cc44ff)",
+              border: "2px solid rgba(255,255,255,0.5)",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+              transition: "transform 0.04s linear",
+            }}
+          >
+            <span className="text-lg">🏎️</span>
+          </div>
+        </div>
+        <p className="text-center text-[10px] mt-1 tracking-wider opacity-40 text-foreground">STEER</p>
       </div>
     </>
   );
