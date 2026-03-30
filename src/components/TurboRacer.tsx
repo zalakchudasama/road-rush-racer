@@ -501,11 +501,9 @@ const TurboRacer = () => {
             ))}
           </div>
 
-          <div className="fixed top-4 right-4 z-50 w-32">
-            <div className="text-muted-foreground text-xs font-mono mb-1 text-right">
-              {Math.min(100, Math.floor((score / TARGET_SCORE) * 100))}% to 🏆
-            </div>
-            <div className="h-3 bg-muted rounded-full overflow-hidden border border-border">
+          {/* Progress bar moved below pause/settings */}
+          <div className="fixed top-28 right-4 z-50 w-28">
+            <div className="h-2 bg-muted rounded-full overflow-hidden border border-border">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)))" }}
@@ -515,14 +513,14 @@ const TurboRacer = () => {
             </div>
           </div>
 
-          {/* Pause Button */}
+          {/* Pause Button - top right */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => {
               stateRef.current.running = false;
               setGameState("paused");
             }}
-            className="fixed top-4 right-[160px] z-50 w-10 h-10 rounded-full bg-background/80 border-2 border-primary/50 flex items-center justify-center text-lg"
+            className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-background/80 border-2 border-primary/50 flex items-center justify-center text-lg"
           >
             ⏸️
           </motion.button>
@@ -660,30 +658,17 @@ const TurboRacer = () => {
             className="absolute inset-0 flex items-center justify-center z-40"
           >
             <motion.div
-              initial={{ scale: 0, rotate: -20 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: "spring", damping: 10 }}
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", damping: 12 }}
               className="bg-background/95 border-2 border-accent rounded-2xl px-8 py-6 text-center max-w-xs"
-              style={{ boxShadow: "0 0 60px rgba(255,200,0,0.4)" }}
+              style={{ boxShadow: "0 0 40px rgba(255,200,0,0.3)" }}
             >
-              <motion.div
-                className="text-6xl mb-3"
-                animate={{ rotate: [0, -10, 10, -10, 0], scale: [1, 1.1, 1] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-              >
-                🏆
-              </motion.div>
-              <h2 className="text-2xl font-bold text-accent mb-2">YOU WIN!</h2>
+              <div className="text-5xl mb-3">🎉</div>
+              <h2 className="text-2xl font-bold text-accent mb-2">LEVEL COMPLETE!</h2>
               <p className="text-foreground text-base mb-1">Score: <span className="font-bold text-primary">{score.toLocaleString()}</span></p>
               <p className="text-foreground mb-1">Coins earned: <span className="font-bold" style={{ color: "#ffd700" }}>{(coins * 10 + Math.floor(score / 10)).toLocaleString()}</span> 💰</p>
               <p className="text-muted-foreground text-xs mb-3">Wallet: 💰 {totalWallet.toLocaleString()}</p>
-              <div className="flex justify-center gap-2 mb-4 text-2xl">
-                {["⭐", "🌟", "⭐", "🌟", "⭐"].map((s, i) => (
-                  <motion.span key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.15 }}>
-                    {s}
-                  </motion.span>
-                ))}
-              </div>
               <div className="flex gap-2 justify-center flex-wrap">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
