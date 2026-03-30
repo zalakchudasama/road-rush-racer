@@ -468,15 +468,6 @@ const TurboRacer = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background relative select-none">
-      {/* Rotate device prompt for portrait mode during gameplay */}
-      {(gameState === "playing" || gameState === "paused") && (
-        <div className="fixed inset-0 z-[200] bg-background flex flex-col items-center justify-center portrait:flex landscape:hidden">
-          <span className="text-6xl mb-4 animate-pulse">📱</span>
-          <p className="text-foreground font-bold text-lg">Rotate Your Device</p>
-          <p className="text-muted-foreground text-sm mt-2">Play in landscape mode for the best experience</p>
-          <div className="mt-4 text-4xl animate-spin" style={{ animationDuration: "2s" }}>↻</div>
-        </div>
-      )}
       {/* HUD */}
       {gameState === "playing" && (
         <>
