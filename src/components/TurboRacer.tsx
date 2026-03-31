@@ -5,15 +5,15 @@ import SplashScreen from "./game/SplashScreen";
 import GameControls from "./game/GameControls";
 import SettingsButton from "./game/SettingsButton";
 import CarGarage from "./game/CarGarage";
+import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
-import { CARS, CarData, getWallet, addToWallet, getSelectedCar } from "./game/cars";
+import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds } from "./game/cars";
 
 const GAME_WIDTH = 420;
 const CAR_W = 50;
 const CAR_H = 80;
-const TARGET_SCORE = 20000;
 
-type GameState = "splash" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
+type GameState = "splash" | "mission" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
 interface GameCoin { x: number; y: number; value: number; color: string; label: string }
