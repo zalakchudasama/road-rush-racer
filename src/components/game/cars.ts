@@ -23,6 +23,19 @@ export const CARS: CarData[] = [
 const WALLET_KEY = "turbo_racer_wallet";
 const OWNED_KEY = "turbo_racer_owned";
 const SELECTED_KEY = "turbo_racer_selected";
+const DIAMOND_KEY = "turbo_racer_diamonds";
+
+export const getDiamonds = (): number => {
+  return parseInt(localStorage.getItem(DIAMOND_KEY) || "0", 10);
+};
+
+export const setDiamonds = (amount: number) => {
+  localStorage.setItem(DIAMOND_KEY, String(amount));
+};
+
+export const addDiamonds = (amount: number) => {
+  setDiamonds(getDiamonds() + amount);
+};
 
 export const getWallet = (): number => {
   return parseInt(localStorage.getItem(WALLET_KEY) || "0", 10);

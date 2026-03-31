@@ -5,18 +5,19 @@ import SplashScreen from "./game/SplashScreen";
 import GameControls from "./game/GameControls";
 import SettingsButton from "./game/SettingsButton";
 import CarGarage from "./game/CarGarage";
+import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
-import { CARS, CarData, getWallet, addToWallet, getSelectedCar } from "./game/cars";
+import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds } from "./game/cars";
 
 const GAME_WIDTH = 420;
 const CAR_W = 50;
 const CAR_H = 80;
-const TARGET_SCORE = 20000;
 
-type GameState = "splash" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
+type GameState = "splash" | "mission" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
 interface GameCoin { x: number; y: number; value: number; color: string; label: string }
+interface GameDiamond { x: number; y: number }
 
 const COIN_TYPES = [
   { value: 50, color: "#cd7f32", label: "50", weight: 5 },
@@ -46,18 +47,22 @@ const TurboRacer = () => {
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
+  const [diamonds, setDiamonds_] = useState(0);
   const [theme, setTheme] = useState<GameTheme>(THEMES.rain);
   const [sensitivity, setSensitivity] = useState(2);
   const [lastScore, setLastScore] = useState(0);
   const [lastCoins, setLastCoins] = useState(0);
   const [totalWallet, setTotalWallet] = useState(getWallet);
+  const [totalDiamonds, setTotalDiamonds] = useState(getDiamonds);
   const [currentCar, setCurrentCar] = useState<CarData>(getCarData);
+  const [currentMission, setCurrentMission] = useState<Mission>(MISSIONS[0]);
   const [coinCollections, setCoinCollections] = useState<{ value: number; id: number }[]>([]);
   const coinIdRef = useRef(0);
   const stateRef = useRef({
     running: false,
     score: 0,
     coins: 0,
+    diamonds: 0,
     x: 185,
     y: 0,
     speed: 5,
@@ -65,6 +70,7 @@ const TurboRacer = () => {
     keys: {} as Record<string, boolean>,
     enemies: [] as { x: number; y: number }[],
     coins_: [] as GameCoin[],
+    diamonds_: [] as GameDiamond[],
     particles: [] as Particle[],
     lineOffset: 0,
     lampOffset: 0,
@@ -72,6 +78,9 @@ const TurboRacer = () => {
     gameH: 700,
     theme: THEMES.rain as GameTheme,
     car: CARS[0] as CarData,
+    targetScore: 20000,
+    missionDiamondBonus: 20,
+    missionCoinBonus: 0,
   });
 
   const drawCar3D = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, isPlayer: boolean) => {
@@ -321,6 +330,43 @@ const TurboRacer = () => {
       drawCoin(ctx, c.x, c.y, c);
     }
 
+    // Diamond collectibles
+    for (const d of s.diamonds_) {
+      d.y += s.speed;
+      if (boxCollide(s.x, s.y, CAR_W, CAR_H, d.x, d.y, 24, 24)) {
+        s.diamonds++;
+        addCoinPopup(-1); // -1 signals diamond
+        d.y = -600 - Math.random() * 800;
+        d.x = 30 + Math.random() * (GAME_WIDTH - 90);
+      }
+      if (d.y > H + 30) {
+        d.y = -600 - Math.random() * 400;
+        d.x = 30 + Math.random() * (GAME_WIDTH - 90);
+      }
+      // Draw diamond
+      ctx.save();
+      ctx.fillStyle = "rgba(0,212,255,0.2)";
+      ctx.beginPath();
+      ctx.ellipse(d.x + 12, d.y + 12, 16, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#00d4ff";
+      ctx.beginPath();
+      ctx.moveTo(d.x + 12, d.y);
+      ctx.lineTo(d.x + 24, d.y + 10);
+      ctx.lineTo(d.x + 12, d.y + 24);
+      ctx.lineTo(d.x, d.y + 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      ctx.beginPath();
+      ctx.moveTo(d.x + 12, d.y + 3);
+      ctx.lineTo(d.x + 20, d.y + 10);
+      ctx.lineTo(d.x + 12, d.y + 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
     for (const e of s.enemies) {
       e.y += s.speed;
       if (e.y > H + 80) {
@@ -334,13 +380,15 @@ const TurboRacer = () => {
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
         ctx.fill();
         s.running = false;
-        // Save coins to wallet
         addToWallet(s.coins * 10 + Math.floor(s.score / 10));
+        addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
+        setTotalDiamonds(getDiamonds());
         setLastScore(s.score);
         setLastCoins(s.coins);
         setScore(s.score);
         setCoins(s.coins);
+        setDiamonds_(s.diamonds);
         setGameState("lost");
         return;
       }
@@ -360,12 +408,15 @@ const TurboRacer = () => {
     if (s.score % 10 === 0) {
       setScore(s.score);
       setCoins(s.coins);
+      setDiamonds_(s.diamonds);
     }
 
-    if (s.score >= TARGET_SCORE) {
+    if (s.score >= s.targetScore) {
       s.running = false;
-      addToWallet(s.coins * 10 + Math.floor(s.score / 10));
+      addToWallet(s.coins * 10 + Math.floor(s.score / 10) + s.missionCoinBonus);
+      addDiamonds(s.diamonds + s.missionDiamondBonus);
       setTotalWallet(getWallet());
+      setTotalDiamonds(getDiamonds());
       setLastScore(s.score);
       setLastCoins(s.coins);
       setGameState("won");
@@ -393,6 +444,7 @@ const TurboRacer = () => {
     cancelAnimationFrame(s.rafId);
     s.score = 0;
     s.coins = 0;
+    s.diamonds = 0;
     s.x = 185;
     s.y = canvas.height - 150;
     s.baseSpeed = SENSITIVITY_SPEED[sensitivity] || 5;
@@ -401,6 +453,7 @@ const TurboRacer = () => {
     s.lampOffset = 0;
     s.enemies = [];
     s.coins_ = [];
+    s.diamonds_ = [];
     s.particles = [];
 
     for (let i = 0; i < 3; i++) {
@@ -414,6 +467,13 @@ const TurboRacer = () => {
         value: ct.value,
         color: ct.color,
         label: ct.label,
+      });
+    }
+    // Spawn 2 diamonds on the road
+    for (let i = 0; i < 2; i++) {
+      s.diamonds_.push({
+        x: 30 + Math.random() * (GAME_WIDTH - 90),
+        y: -500 - (i + 1) * 600,
       });
     }
     const pc = selectedTheme.particles;
@@ -430,6 +490,7 @@ const TurboRacer = () => {
     setGameState("playing");
     setScore(0);
     setCoins(0);
+    setDiamonds_(0);
     setCoinCollections([]);
     s.rafId = requestAnimationFrame(loop);
   }, [loop, sensitivity]);
@@ -478,6 +539,9 @@ const TurboRacer = () => {
             <div className="text-foreground text-sm font-mono tracking-wider bg-background/80 px-2 py-1 rounded-md border border-accent/30">
               💰 Coins: <span className="font-bold" style={{ color: "#ffd700" }}>{coins}</span>
             </div>
+            <div className="text-foreground text-sm font-mono tracking-wider bg-background/80 px-2 py-1 rounded-md border" style={{ borderColor: "rgba(0,212,255,0.3)" }}>
+              💎 Diamonds: <span className="font-bold" style={{ color: "#00d4ff" }}>{diamonds}</span>
+            </div>
             <div className="text-muted-foreground text-xs font-mono bg-background/80 px-2 py-1 rounded-md border border-border">
               {currentCar.emoji} {currentCar.name}
             </div>
@@ -507,7 +571,7 @@ const TurboRacer = () => {
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)))" }}
-                animate={{ width: `${Math.min(100, (score / TARGET_SCORE) * 100)}%` }}
+                animate={{ width: `${Math.min(100, (score / currentMission.target) * 100)}%` }}
                 transition={{ duration: 0.3 }}
               />
             </div>
@@ -537,9 +601,9 @@ const TurboRacer = () => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -30, scale: 0.5 }}
                   className="font-bold text-lg font-mono"
-                  style={{ color: c.value >= 150 ? "#ffd700" : c.value >= 100 ? "#c0c0c0" : "#cd7f32" }}
+                  style={{ color: c.value === -1 ? "#00d4ff" : c.value >= 150 ? "#ffd700" : c.value >= 100 ? "#c0c0c0" : "#cd7f32" }}
                 >
-                  +{c.value} 💰
+                  {c.value === -1 ? "+1 💎" : `+${c.value} 💰`}
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -586,7 +650,20 @@ const TurboRacer = () => {
 
       <AnimatePresence>
         {gameState === "splash" && (
-          <SplashScreen onComplete={() => setGameState("select")} />
+          <SplashScreen onComplete={() => setGameState("mission")} />
+        )}
+
+        {gameState === "mission" && (
+          <MissionSelect
+            diamonds={totalDiamonds}
+            onSelect={(m) => {
+              setCurrentMission(m);
+              stateRef.current.targetScore = m.target;
+              stateRef.current.missionDiamondBonus = m.diamondBonus;
+              stateRef.current.missionCoinBonus = m.coinBonus;
+              setGameState("select");
+            }}
+          />
         )}
 
         {gameState === "select" && (
@@ -639,7 +716,7 @@ const TurboRacer = () => {
                   className="px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
                   onClick={() => {
                     stateRef.current.running = false;
-                    setGameState("select");
+                    setGameState("mission");
                   }}
                 >
                   🚪 QUIT
@@ -665,10 +742,12 @@ const TurboRacer = () => {
               style={{ boxShadow: "0 0 40px rgba(255,200,0,0.3)" }}
             >
               <div className="text-5xl mb-3">🎉</div>
-              <h2 className="text-2xl font-bold text-accent mb-2">LEVEL COMPLETE!</h2>
+              <h2 className="text-2xl font-bold text-accent mb-2">MISSION COMPLETE!</h2>
+              <p className="text-foreground text-sm mb-1">🎯 {currentMission.label}</p>
               <p className="text-foreground text-base mb-1">Score: <span className="font-bold text-primary">{score.toLocaleString()}</span></p>
-              <p className="text-foreground mb-1">Coins earned: <span className="font-bold" style={{ color: "#ffd700" }}>{(coins * 10 + Math.floor(score / 10)).toLocaleString()}</span> 💰</p>
-              <p className="text-muted-foreground text-xs mb-3">Wallet: 💰 {totalWallet.toLocaleString()}</p>
+              <p className="text-foreground mb-1">Coins earned: <span className="font-bold" style={{ color: "#ffd700" }}>{(coins * 10 + Math.floor(score / 10) + currentMission.coinBonus).toLocaleString()}</span> 💰</p>
+              <p className="text-foreground mb-1">Bonus: <span className="font-bold" style={{ color: "#00d4ff" }}>+{currentMission.diamondBonus + diamonds} 💎</span></p>
+              <p className="text-muted-foreground text-xs mb-3">Wallet: 💰 {totalWallet.toLocaleString()} | 💎 {totalDiamonds}</p>
               <div className="flex gap-2 justify-center flex-wrap">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -692,7 +771,7 @@ const TurboRacer = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-                  onClick={() => setGameState("select")}
+                  onClick={() => setGameState("mission")}
                 >
                   🗺️ CHANGE
                 </motion.button>
@@ -750,7 +829,7 @@ const TurboRacer = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-                  onClick={() => setGameState("select")}
+                  onClick={() => setGameState("mission")}
                 >
                   🗺️ CHANGE
                 </motion.button>
