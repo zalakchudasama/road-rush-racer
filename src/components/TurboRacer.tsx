@@ -554,7 +554,7 @@ const TurboRacer = () => {
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)))" }}
-                animate={{ width: `${Math.min(100, (score / TARGET_SCORE) * 100)}%` }}
+                animate={{ width: `${Math.min(100, (score / currentMission.target) * 100)}%` }}
                 transition={{ duration: 0.3 }}
               />
             </div>
