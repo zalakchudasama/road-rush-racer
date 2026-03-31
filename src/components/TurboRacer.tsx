@@ -716,7 +716,7 @@ const TurboRacer = () => {
                   className="px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
                   onClick={() => {
                     stateRef.current.running = false;
-                    setGameState("select");
+                    setGameState("mission");
                   }}
                 >
                   🚪 QUIT
