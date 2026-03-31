@@ -537,6 +537,9 @@ const TurboRacer = () => {
             <div className="text-foreground text-sm font-mono tracking-wider bg-background/80 px-2 py-1 rounded-md border border-accent/30">
               💰 Coins: <span className="font-bold" style={{ color: "#ffd700" }}>{coins}</span>
             </div>
+            <div className="text-foreground text-sm font-mono tracking-wider bg-background/80 px-2 py-1 rounded-md border" style={{ borderColor: "rgba(0,212,255,0.3)" }}>
+              💎 Diamonds: <span className="font-bold" style={{ color: "#00d4ff" }}>{diamonds}</span>
+            </div>
             <div className="text-muted-foreground text-xs font-mono bg-background/80 px-2 py-1 rounded-md border border-border">
               {currentCar.emoji} {currentCar.name}
             </div>
