@@ -328,6 +328,43 @@ const TurboRacer = () => {
       drawCoin(ctx, c.x, c.y, c);
     }
 
+    // Diamond collectibles
+    for (const d of s.diamonds_) {
+      d.y += s.speed;
+      if (boxCollide(s.x, s.y, CAR_W, CAR_H, d.x, d.y, 24, 24)) {
+        s.diamonds++;
+        addCoinPopup(-1); // -1 signals diamond
+        d.y = -600 - Math.random() * 800;
+        d.x = 30 + Math.random() * (GAME_WIDTH - 90);
+      }
+      if (d.y > H + 30) {
+        d.y = -600 - Math.random() * 400;
+        d.x = 30 + Math.random() * (GAME_WIDTH - 90);
+      }
+      // Draw diamond
+      ctx.save();
+      ctx.fillStyle = "rgba(0,212,255,0.2)";
+      ctx.beginPath();
+      ctx.ellipse(d.x + 12, d.y + 12, 16, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#00d4ff";
+      ctx.beginPath();
+      ctx.moveTo(d.x + 12, d.y);
+      ctx.lineTo(d.x + 24, d.y + 10);
+      ctx.lineTo(d.x + 12, d.y + 24);
+      ctx.lineTo(d.x, d.y + 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      ctx.beginPath();
+      ctx.moveTo(d.x + 12, d.y + 3);
+      ctx.lineTo(d.x + 20, d.y + 10);
+      ctx.lineTo(d.x + 12, d.y + 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
     for (const e of s.enemies) {
       e.y += s.speed;
       if (e.y > H + 80) {
