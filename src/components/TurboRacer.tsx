@@ -378,13 +378,15 @@ const TurboRacer = () => {
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
         ctx.fill();
         s.running = false;
-        // Save coins to wallet
         addToWallet(s.coins * 10 + Math.floor(s.score / 10));
+        addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
+        setTotalDiamonds(getDiamonds());
         setLastScore(s.score);
         setLastCoins(s.coins);
         setScore(s.score);
         setCoins(s.coins);
+        setDiamonds_(s.diamonds);
         setGameState("lost");
         return;
       }
