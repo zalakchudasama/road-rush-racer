@@ -404,6 +404,7 @@ const TurboRacer = () => {
     if (s.score % 10 === 0) {
       setScore(s.score);
       setCoins(s.coins);
+      setDiamonds_(s.diamonds);
     }
 
     if (s.score >= TARGET_SCORE) {
