@@ -47,18 +47,22 @@ const TurboRacer = () => {
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
+  const [diamonds, setDiamonds_] = useState(0);
   const [theme, setTheme] = useState<GameTheme>(THEMES.rain);
   const [sensitivity, setSensitivity] = useState(2);
   const [lastScore, setLastScore] = useState(0);
   const [lastCoins, setLastCoins] = useState(0);
   const [totalWallet, setTotalWallet] = useState(getWallet);
+  const [totalDiamonds, setTotalDiamonds] = useState(getDiamonds);
   const [currentCar, setCurrentCar] = useState<CarData>(getCarData);
+  const [currentMission, setCurrentMission] = useState<Mission>(MISSIONS[0]);
   const [coinCollections, setCoinCollections] = useState<{ value: number; id: number }[]>([]);
   const coinIdRef = useRef(0);
   const stateRef = useRef({
     running: false,
     score: 0,
     coins: 0,
+    diamonds: 0,
     x: 185,
     y: 0,
     speed: 5,
@@ -66,6 +70,7 @@ const TurboRacer = () => {
     keys: {} as Record<string, boolean>,
     enemies: [] as { x: number; y: number }[],
     coins_: [] as GameCoin[],
+    diamonds_: [] as GameDiamond[],
     particles: [] as Particle[],
     lineOffset: 0,
     lampOffset: 0,
@@ -73,6 +78,7 @@ const TurboRacer = () => {
     gameH: 700,
     theme: THEMES.rain as GameTheme,
     car: CARS[0] as CarData,
+    targetScore: 20000,
   });
 
   const drawCar3D = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, isPlayer: boolean) => {
