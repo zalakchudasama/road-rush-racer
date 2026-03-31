@@ -648,7 +648,18 @@ const TurboRacer = () => {
 
       <AnimatePresence>
         {gameState === "splash" && (
-          <SplashScreen onComplete={() => setGameState("select")} />
+          <SplashScreen onComplete={() => setGameState("mission")} />
+        )}
+
+        {gameState === "mission" && (
+          <MissionSelect
+            diamonds={totalDiamonds}
+            onSelect={(m) => {
+              setCurrentMission(m);
+              stateRef.current.targetScore = m.target;
+              setGameState("select");
+            }}
+          />
         )}
 
         {gameState === "select" && (
