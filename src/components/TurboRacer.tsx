@@ -17,6 +17,7 @@ type GameState = "splash" | "mission" | "select" | "garage" | "playing" | "pause
 
 interface Particle { x: number; y: number; size: number; speed: number }
 interface GameCoin { x: number; y: number; value: number; color: string; label: string }
+interface GameDiamond { x: number; y: number }
 
 const COIN_TYPES = [
   { value: 50, color: "#cd7f32", label: "50", weight: 5 },
