@@ -599,9 +599,9 @@ const TurboRacer = () => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -30, scale: 0.5 }}
                   className="font-bold text-lg font-mono"
-                  style={{ color: c.value >= 150 ? "#ffd700" : c.value >= 100 ? "#c0c0c0" : "#cd7f32" }}
+                  style={{ color: c.value === -1 ? "#00d4ff" : c.value >= 150 ? "#ffd700" : c.value >= 100 ? "#c0c0c0" : "#cd7f32" }}
                 >
-                  +{c.value} 💰
+                  {c.value === -1 ? "+1 💎" : `+${c.value} 💰`}
                 </motion.div>
               ))}
             </AnimatePresence>
