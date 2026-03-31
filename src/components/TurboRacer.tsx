@@ -413,8 +413,8 @@ const TurboRacer = () => {
 
     if (s.score >= s.targetScore) {
       s.running = false;
-      addToWallet(s.coins * 10 + Math.floor(s.score / 10));
-      addDiamonds(s.diamonds);
+      addToWallet(s.coins * 10 + Math.floor(s.score / 10) + s.missionCoinBonus);
+      addDiamonds(s.diamonds + s.missionDiamondBonus);
       setTotalWallet(getWallet());
       setTotalDiamonds(getDiamonds());
       setLastScore(s.score);
