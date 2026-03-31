@@ -829,7 +829,7 @@ const TurboRacer = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-                  onClick={() => setGameState("select")}
+                  onClick={() => setGameState("mission")}
                 >
                   🗺️ CHANGE
                 </motion.button>
