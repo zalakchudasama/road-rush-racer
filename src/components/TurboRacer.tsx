@@ -442,6 +442,7 @@ const TurboRacer = () => {
     cancelAnimationFrame(s.rafId);
     s.score = 0;
     s.coins = 0;
+    s.diamonds = 0;
     s.x = 185;
     s.y = canvas.height - 150;
     s.baseSpeed = SENSITIVITY_SPEED[sensitivity] || 5;
@@ -450,6 +451,7 @@ const TurboRacer = () => {
     s.lampOffset = 0;
     s.enemies = [];
     s.coins_ = [];
+    s.diamonds_ = [];
     s.particles = [];
 
     for (let i = 0; i < 3; i++) {
@@ -463,6 +465,13 @@ const TurboRacer = () => {
         value: ct.value,
         color: ct.color,
         label: ct.label,
+      });
+    }
+    // Spawn 2 diamonds on the road
+    for (let i = 0; i < 2; i++) {
+      s.diamonds_.push({
+        x: 30 + Math.random() * (GAME_WIDTH - 90),
+        y: -500 - (i + 1) * 600,
       });
     }
     const pc = selectedTheme.particles;
@@ -479,6 +488,7 @@ const TurboRacer = () => {
     setGameState("playing");
     setScore(0);
     setCoins(0);
+    setDiamonds_(0);
     setCoinCollections([]);
     s.rafId = requestAnimationFrame(loop);
   }, [loop, sensitivity]);
