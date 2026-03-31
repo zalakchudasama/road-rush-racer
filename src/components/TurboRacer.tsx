@@ -738,10 +738,12 @@ const TurboRacer = () => {
               style={{ boxShadow: "0 0 40px rgba(255,200,0,0.3)" }}
             >
               <div className="text-5xl mb-3">🎉</div>
-              <h2 className="text-2xl font-bold text-accent mb-2">LEVEL COMPLETE!</h2>
+              <h2 className="text-2xl font-bold text-accent mb-2">MISSION COMPLETE!</h2>
+              <p className="text-foreground text-sm mb-1">🎯 {currentMission.label}</p>
               <p className="text-foreground text-base mb-1">Score: <span className="font-bold text-primary">{score.toLocaleString()}</span></p>
-              <p className="text-foreground mb-1">Coins earned: <span className="font-bold" style={{ color: "#ffd700" }}>{(coins * 10 + Math.floor(score / 10)).toLocaleString()}</span> 💰</p>
-              <p className="text-muted-foreground text-xs mb-3">Wallet: 💰 {totalWallet.toLocaleString()}</p>
+              <p className="text-foreground mb-1">Coins earned: <span className="font-bold" style={{ color: "#ffd700" }}>{(coins * 10 + Math.floor(score / 10) + currentMission.coinBonus).toLocaleString()}</span> 💰</p>
+              <p className="text-foreground mb-1">Bonus: <span className="font-bold" style={{ color: "#00d4ff" }}>+{currentMission.diamondBonus + diamonds} 💎</span></p>
+              <p className="text-muted-foreground text-xs mb-3">Wallet: 💰 {totalWallet.toLocaleString()} | 💎 {totalDiamonds}</p>
               <div className="flex gap-2 justify-center flex-wrap">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
