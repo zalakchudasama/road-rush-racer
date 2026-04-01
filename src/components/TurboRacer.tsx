@@ -359,7 +359,7 @@ const TurboRacer = () => {
 
     // Diamond collectibles
     for (const d of s.diamonds_) {
-      d.y += s.speed;
+      d.y += effectiveSpeed;
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, d.x, d.y, 24, 24)) {
         s.diamonds++;
         addCoinPopup(-1); // -1 signals diamond
