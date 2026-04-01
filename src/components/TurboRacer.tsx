@@ -651,6 +651,15 @@ const TurboRacer = () => {
       {(gameState === "playing" || gameState === "paused") && (
         <GameControls
           sensitivity={sensitivity}
+          boostFill={boostFill}
+          boostActive={boostActive}
+          onBoost={() => {
+            const s = stateRef.current;
+            if (s.boost >= 30 && !s.boostActive && s.boostCooldown <= 0) {
+              s.boostActive = true;
+              setBoostActive(true);
+            }
+          }}
           onControl={(dir) => {
             const s = stateRef.current;
             s.keys.ArrowLeft = dir.left;
