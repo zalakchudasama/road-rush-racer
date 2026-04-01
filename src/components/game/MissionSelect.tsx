@@ -22,8 +22,6 @@ interface Props {
 }
 
 const MissionSelect = ({ onSelect, diamonds }: Props) => {
-  const [selected, setSelected] = useState<string | null>(null);
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -38,47 +36,35 @@ const MissionSelect = ({ onSelect, diamonds }: Props) => {
       >
         <div className="text-4xl mb-2">🎯</div>
         <h1 className="text-2xl font-bold text-foreground mb-1 tracking-wider">SELECT MISSION</h1>
-        <p className="text-muted-foreground text-xs mb-1">Choose a mission, then press START</p>
+        <p className="text-muted-foreground text-xs mb-1">Tap START on a mission to begin</p>
         <p className="text-sm mb-4 font-mono">
           💎 <span style={{ color: "#00d4ff" }} className="font-bold">{diamonds}</span>
         </p>
 
         <div className="flex flex-col gap-3 mb-4">
           {MISSIONS.map((m) => (
-            <div key={m.id} className="flex flex-col gap-1">
+            <motion.div
+              key={m.id}
+              whileHover={{ scale: 1.03 }}
+              className="flex items-center justify-between px-4 py-3 rounded-xl border-2 border-border bg-card"
+            >
+              <div className="text-left flex-1">
+                <div className="text-foreground font-bold text-sm">{m.label}</div>
+                <div className="text-muted-foreground text-xs">Target: {m.target.toLocaleString()} pts</div>
+                <div className="flex gap-2 mt-1">
+                  <span className="text-xs font-mono" style={{ color: "#00d4ff" }}>+{m.diamondBonus} 💎</span>
+                  <span className="text-xs font-mono" style={{ color: "#ffd700" }}>+{m.coinBonus} 💰</span>
+                </div>
+              </div>
               <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => setSelected(m.id)}
-                className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-colors ${
-                  selected === m.id
-                    ? "border-primary bg-primary/10"
-                    : "border-border bg-card hover:border-muted-foreground"
-                }`}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => onSelect(m)}
+                className="ml-3 px-4 py-2 rounded-lg font-bold text-xs text-primary-foreground tracking-wider"
+                style={{ background: "linear-gradient(135deg, #ff4444, #ff8800)" }}
               >
-                <div className="text-left">
-                  <div className="text-foreground font-bold text-sm">{m.label}</div>
-                  <div className="text-muted-foreground text-xs">Target: {m.target.toLocaleString()} pts</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs font-mono" style={{ color: "#00d4ff" }}>+{m.diamondBonus} 💎</div>
-                  <div className="text-xs font-mono" style={{ color: "#ffd700" }}>+{m.coinBonus} 💰</div>
-                </div>
+                🚀 START
               </motion.button>
-              {selected === m.id && (
-                <motion.button
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => onSelect(m)}
-                  className="w-full py-2 rounded-xl font-bold text-sm text-primary-foreground tracking-wider"
-                  style={{ background: "linear-gradient(135deg, #ff4444, #ff8800)" }}
-                >
-                  🚀 START
-                </motion.button>
-              )}
-            </div>
+            </motion.div>
           ))}
         </div>
 
