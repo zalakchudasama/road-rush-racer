@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
 import { THEMES, ThemeId } from "./themes";
 
 interface Props {
@@ -10,8 +9,6 @@ interface Props {
 const themeList: ThemeId[] = ["rain", "lava", "ice", "desert"];
 
 const ThemeSelect = ({ onSelect, onGarage }: Props) => {
-  const [selected, setSelected] = useState<ThemeId | null>(null);
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -25,41 +22,29 @@ const ThemeSelect = ({ onSelect, onGarage }: Props) => {
       >
         <div className="text-5xl mb-3">🏎️</div>
         <h1 className="text-2xl font-bold text-foreground mb-1 tracking-wider">TURBO RACER PRO</h1>
-        <p className="text-muted-foreground text-sm mb-4">Choose your road, then press PLAY</p>
+        <p className="text-muted-foreground text-sm mb-4">Tap PLAY on a road to begin</p>
 
         <div className="grid grid-cols-2 gap-3 mb-5">
           {themeList.map((id) => {
             const t = THEMES[id];
             return (
-              <div key={id} className="flex flex-col gap-1">
+              <motion.div
+                key={id}
+                whileHover={{ scale: 1.05 }}
+                className="flex flex-col items-center gap-1 px-3 py-3 rounded-xl border-2 border-border bg-card"
+              >
+                <span className="text-3xl">{t.emoji}</span>
+                <span className="text-foreground font-bold text-xs tracking-wider">{t.name}</span>
+                <span className="text-muted-foreground text-[10px]">{t.description}</span>
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelected(id)}
-                  className={`flex flex-col items-center gap-1 px-4 py-4 rounded-xl border-2 transition-colors ${
-                    selected === id
-                      ? "border-primary bg-primary/10"
-                      : "border-border bg-card hover:border-muted-foreground"
-                  }`}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => onSelect(id)}
+                  className="mt-1 w-full py-1.5 rounded-lg font-bold text-xs text-primary-foreground tracking-wider"
+                  style={{ background: "linear-gradient(135deg, #44dd44, #22aa22)" }}
                 >
-                  <span className="text-3xl">{t.emoji}</span>
-                  <span className="text-foreground font-bold text-xs tracking-wider">{t.name}</span>
-                  <span className="text-muted-foreground text-[10px]">{t.description}</span>
+                  ▶️ PLAY
                 </motion.button>
-                {selected === id && (
-                  <motion.button
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onSelect(id)}
-                    className="w-full py-2 rounded-xl font-bold text-sm text-primary-foreground tracking-wider"
-                    style={{ background: "linear-gradient(135deg, #44dd44, #22aa22)" }}
-                  >
-                    ▶️ PLAY
-                  </motion.button>
-                )}
-              </div>
+              </motion.div>
             );
           })}
         </div>
