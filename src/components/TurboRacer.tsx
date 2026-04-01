@@ -4,7 +4,6 @@ import ThemeSelect from "./game/ThemeSelect";
 import SplashScreen from "./game/SplashScreen";
 import GameControls from "./game/GameControls";
 import SettingsButton from "./game/SettingsButton";
-import SettingsButton from "./game/SettingsButton";
 import CarGarage from "./game/CarGarage";
 import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
