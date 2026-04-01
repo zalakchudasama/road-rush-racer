@@ -458,7 +458,7 @@ const TurboRacer = () => {
     s.particles = [];
 
     for (let i = 0; i < 3; i++) {
-      s.enemies.push({ x: 20 + Math.random() * (GAME_WIDTH - 90), y: (i + 1) * -300 });
+      s.enemies.push({ x: 20 + Math.random() * (GAME_WIDTH - 90), y: canvas.height + 100 + i * 300 });
     }
     for (let i = 0; i < 4; i++) {
       const ct = randomCoinType();
