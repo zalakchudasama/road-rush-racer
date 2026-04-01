@@ -56,8 +56,6 @@ const TurboRacer = () => {
   const [totalDiamonds, setTotalDiamonds] = useState(getDiamonds);
   const [currentCar, setCurrentCar] = useState<CarData>(getCarData);
   const [currentMission, setCurrentMission] = useState<Mission>(MISSIONS[0]);
-  const [boostFill, setBoostFill] = useState(0);
-  const [boostActive, setBoostActive] = useState(false);
   const [coinCollections, setCoinCollections] = useState<{ value: number; id: number }[]>([]);
   const coinIdRef = useRef(0);
   const stateRef = useRef({
@@ -83,10 +81,6 @@ const TurboRacer = () => {
     targetScore: 20000,
     missionDiamondBonus: 20,
     missionCoinBonus: 0,
-    driving: false,
-    boost: 0,
-    boostActive: false,
-    boostCooldown: 0,
   });
 
   const drawCar3D = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, isPlayer: boolean) => {
@@ -293,28 +287,7 @@ const TurboRacer = () => {
     ctx.beginPath(); ctx.moveTo(W - 8, 0); ctx.lineTo(W - 8, H); ctx.stroke();
     ctx.setLineDash([]);
 
-    // Determine if car is driving (UP pressed)
-    s.driving = !!s.keys.ArrowUp;
-    const driveSpeed = s.driving ? s.speed : 0;
-    const boostMultiplier = s.boostActive ? 2.5 : 1;
-    const effectiveSpeed = driveSpeed * boostMultiplier;
-
-    // Boost auto-fill: fills when driving, drains when boosting
-    if (s.boostActive && s.boost > 0) {
-      s.boost -= 0.8;
-      if (s.boost <= 0) { s.boost = 0; s.boostActive = false; }
-    } else if (s.driving && !s.boostActive) {
-      s.boost = Math.min(100, s.boost + 0.15);
-    }
-    if (s.boostCooldown > 0) s.boostCooldown--;
-
-    // Update boost UI every 5 frames
-    if (s.score % 5 === 0) {
-      setBoostFill(s.boost);
-      setBoostActive(s.boostActive);
-    }
-
-    s.lineOffset += effectiveSpeed;
+    s.lineOffset += s.speed;
     if (s.lineOffset > 150) s.lineOffset -= 150;
     ctx.strokeStyle = t.lineColor;
     ctx.lineWidth = 3;
@@ -323,7 +296,7 @@ const TurboRacer = () => {
     ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
     ctx.setLineDash([]);
 
-    s.lampOffset += effectiveSpeed;
+    s.lampOffset += s.speed;
     if (s.lampOffset > 250) s.lampOffset -= 250;
     for (let i = -1; i < 5; i++) {
       const ly = i * 250 + s.lampOffset;
@@ -334,7 +307,7 @@ const TurboRacer = () => {
     drawParticles(ctx, s);
 
     for (const c of s.coins_) {
-      c.y += effectiveSpeed;
+      c.y += s.speed;
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, c.x, c.y, 30, 30)) {
         s.coins++;
         s.score += c.value;
@@ -359,7 +332,7 @@ const TurboRacer = () => {
 
     // Diamond collectibles
     for (const d of s.diamonds_) {
-      d.y += effectiveSpeed;
+      d.y += s.speed;
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, d.x, d.y, 24, 24)) {
         s.diamonds++;
         addCoinPopup(-1); // -1 signals diamond
@@ -395,7 +368,7 @@ const TurboRacer = () => {
     }
 
     for (const e of s.enemies) {
-      e.y -= effectiveSpeed * 0.6;
+      e.y -= s.speed * 0.6;
       if (e.y < -CAR_H - 100) {
         e.y = H + 100 + Math.random() * 300;
         e.x = 20 + Math.random() * (GAME_WIDTH - 90);
@@ -427,12 +400,10 @@ const TurboRacer = () => {
     const moveSpeed = s.speed;
     if (s.keys.ArrowLeft && s.x > 15) s.x -= moveSpeed;
     if (s.keys.ArrowRight && s.x < GAME_WIDTH - CAR_W - 15) s.x += moveSpeed;
+    if (s.keys.ArrowUp && s.y > 0) s.y -= moveSpeed;
     if (s.keys.ArrowDown && s.y < H - CAR_H) s.y += moveSpeed;
 
-    // Score only increments when driving
-    if (s.driving) {
-      s.score += s.boostActive ? 3 : 1;
-    }
+    s.score++;
     s.speed = s.baseSpeed + s.car.speed + Math.floor(s.score / 2000);
 
     if (s.score % 10 === 0) {
@@ -485,10 +456,6 @@ const TurboRacer = () => {
     s.coins_ = [];
     s.diamonds_ = [];
     s.particles = [];
-    s.boost = 0;
-    s.boostActive = false;
-    s.boostCooldown = 0;
-    s.driving = false;
 
     for (let i = 0; i < 3; i++) {
       s.enemies.push({ x: 20 + Math.random() * (GAME_WIDTH - 90), y: canvas.height + 100 + i * 300 });
@@ -655,15 +622,6 @@ const TurboRacer = () => {
       {(gameState === "playing" || gameState === "paused") && (
         <GameControls
           sensitivity={sensitivity}
-          boostFill={boostFill}
-          boostActive={boostActive}
-          onBoost={() => {
-            const s = stateRef.current;
-            if (s.boost >= 30 && !s.boostActive && s.boostCooldown <= 0) {
-              s.boostActive = true;
-              setBoostActive(true);
-            }
-          }}
           onControl={(dir) => {
             const s = stateRef.current;
             s.keys.ArrowLeft = dir.left;
