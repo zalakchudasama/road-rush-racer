@@ -427,10 +427,12 @@ const TurboRacer = () => {
     const moveSpeed = s.speed;
     if (s.keys.ArrowLeft && s.x > 15) s.x -= moveSpeed;
     if (s.keys.ArrowRight && s.x < GAME_WIDTH - CAR_W - 15) s.x += moveSpeed;
-    if (s.keys.ArrowUp && s.y > 0) s.y -= moveSpeed;
     if (s.keys.ArrowDown && s.y < H - CAR_H) s.y += moveSpeed;
 
-    s.score++;
+    // Score only increments when driving
+    if (s.driving) {
+      s.score += s.boostActive ? 3 : 1;
+    }
     s.speed = s.baseSpeed + s.car.speed + Math.floor(s.score / 2000);
 
     if (s.score % 10 === 0) {
