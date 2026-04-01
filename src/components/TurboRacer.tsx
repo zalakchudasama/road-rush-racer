@@ -485,6 +485,10 @@ const TurboRacer = () => {
     s.coins_ = [];
     s.diamonds_ = [];
     s.particles = [];
+    s.boost = 0;
+    s.boostActive = false;
+    s.boostCooldown = 0;
+    s.driving = false;
 
     for (let i = 0; i < 3; i++) {
       s.enemies.push({ x: 20 + Math.random() * (GAME_WIDTH - 90), y: canvas.height + 100 + i * 300 });
