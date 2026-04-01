@@ -368,11 +368,12 @@ const TurboRacer = () => {
     }
 
     for (const e of s.enemies) {
-      e.y += s.speed;
-      if (e.y > H + 80) {
-        e.y = -300 - Math.random() * 300;
+      e.y -= s.speed * 0.6;
+      if (e.y < -CAR_H - 100) {
+        e.y = H + 100 + Math.random() * 300;
         e.x = 20 + Math.random() * (GAME_WIDTH - 90);
       }
+      // Draw enemy car facing upward (same direction as player)
       drawCar3D(ctx, e.x, e.y, "#ff8800", false);
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, e.x, e.y, CAR_W, CAR_H)) {
         ctx.fillStyle = "rgba(255,100,0,0.6)";
