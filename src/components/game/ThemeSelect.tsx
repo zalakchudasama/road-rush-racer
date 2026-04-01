@@ -31,38 +31,38 @@ const ThemeSelect = ({ onSelect, onGarage }: Props) => {
           {themeList.map((id) => {
             const t = THEMES[id];
             return (
-              <motion.button
-                key={id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSelected(id)}
-                className={`flex flex-col items-center gap-1 px-4 py-4 rounded-xl border-2 transition-colors ${
-                  selected === id
-                    ? "border-primary bg-primary/10"
-                    : "border-border bg-card hover:border-muted-foreground"
-                }`}
-              >
-                <span className="text-3xl">{t.emoji}</span>
-                <span className="text-foreground font-bold text-xs tracking-wider">{t.name}</span>
-                <span className="text-muted-foreground text-[10px]">{t.description}</span>
-              </motion.button>
+              <div key={id} className="flex flex-col gap-1">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelected(id)}
+                  className={`flex flex-col items-center gap-1 px-4 py-4 rounded-xl border-2 transition-colors ${
+                    selected === id
+                      ? "border-primary bg-primary/10"
+                      : "border-border bg-card hover:border-muted-foreground"
+                  }`}
+                >
+                  <span className="text-3xl">{t.emoji}</span>
+                  <span className="text-foreground font-bold text-xs tracking-wider">{t.name}</span>
+                  <span className="text-muted-foreground text-[10px]">{t.description}</span>
+                </motion.button>
+                {selected === id && (
+                  <motion.button
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onSelect(id)}
+                    className="w-full py-2 rounded-xl font-bold text-sm text-primary-foreground tracking-wider"
+                    style={{ background: "linear-gradient(135deg, #44dd44, #22aa22)" }}
+                  >
+                    ▶️ PLAY
+                  </motion.button>
+                )}
+              </div>
             );
           })}
         </div>
-
-        {selected && (
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => onSelect(selected)}
-            className="w-full py-3 rounded-xl font-bold text-base text-primary-foreground tracking-wider mb-4"
-            style={{ background: "linear-gradient(135deg, #44dd44, #22aa22)" }}
-          >
-            ▶️ PLAY
-          </motion.button>
-        )}
 
         {onGarage && (
           <motion.button
