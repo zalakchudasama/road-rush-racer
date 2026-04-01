@@ -82,6 +82,10 @@ const TurboRacer = () => {
     targetScore: 20000,
     missionDiamondBonus: 20,
     missionCoinBonus: 0,
+    driving: false,
+    boost: 0,
+    boostActive: false,
+    boostCooldown: 0,
   });
 
   const drawCar3D = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, isPlayer: boolean) => {
