@@ -56,6 +56,8 @@ const TurboRacer = () => {
   const [totalDiamonds, setTotalDiamonds] = useState(getDiamonds);
   const [currentCar, setCurrentCar] = useState<CarData>(getCarData);
   const [currentMission, setCurrentMission] = useState<Mission>(MISSIONS[0]);
+  const [boostFill, setBoostFill] = useState(0);
+  const [boostActive, setBoostActive] = useState(false);
   const [coinCollections, setCoinCollections] = useState<{ value: number; id: number }[]>([]);
   const coinIdRef = useRef(0);
   const stateRef = useRef({
