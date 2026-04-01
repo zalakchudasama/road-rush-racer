@@ -293,7 +293,28 @@ const TurboRacer = () => {
     ctx.beginPath(); ctx.moveTo(W - 8, 0); ctx.lineTo(W - 8, H); ctx.stroke();
     ctx.setLineDash([]);
 
-    s.lineOffset += s.speed;
+    // Determine if car is driving (UP pressed)
+    s.driving = !!s.keys.ArrowUp;
+    const driveSpeed = s.driving ? s.speed : 0;
+    const boostMultiplier = s.boostActive ? 2.5 : 1;
+    const effectiveSpeed = driveSpeed * boostMultiplier;
+
+    // Boost auto-fill: fills when driving, drains when boosting
+    if (s.boostActive && s.boost > 0) {
+      s.boost -= 0.8;
+      if (s.boost <= 0) { s.boost = 0; s.boostActive = false; }
+    } else if (s.driving && !s.boostActive) {
+      s.boost = Math.min(100, s.boost + 0.15);
+    }
+    if (s.boostCooldown > 0) s.boostCooldown--;
+
+    // Update boost UI every 5 frames
+    if (s.score % 5 === 0) {
+      setBoostFill(s.boost);
+      setBoostActive(s.boostActive);
+    }
+
+    s.lineOffset += effectiveSpeed;
     if (s.lineOffset > 150) s.lineOffset -= 150;
     ctx.strokeStyle = t.lineColor;
     ctx.lineWidth = 3;
@@ -302,7 +323,7 @@ const TurboRacer = () => {
     ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
     ctx.setLineDash([]);
 
-    s.lampOffset += s.speed;
+    s.lampOffset += effectiveSpeed;
     if (s.lampOffset > 250) s.lampOffset -= 250;
     for (let i = -1; i < 5; i++) {
       const ly = i * 250 + s.lampOffset;
@@ -313,7 +334,7 @@ const TurboRacer = () => {
     drawParticles(ctx, s);
 
     for (const c of s.coins_) {
-      c.y += s.speed;
+      c.y += effectiveSpeed;
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, c.x, c.y, 30, 30)) {
         s.coins++;
         s.score += c.value;
