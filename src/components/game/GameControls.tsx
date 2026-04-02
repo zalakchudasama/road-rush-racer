@@ -72,10 +72,10 @@ const GameControls = ({ onControl, sensitivity, onBoost }: GameControlsProps) =>
 
   return (
     <>
-      {/* LEFT SIDE: Left & Right steering buttons */}
+      {/* LEFT SIDE: Left & Right steering buttons (horizontal) */}
       <div
-        className="fixed left-3 z-50 flex flex-col items-center gap-3"
-        style={{ bottom: 90 }}
+        className="fixed left-3 z-50 flex flex-row items-center gap-3"
+        style={{ bottom: 100 }}
       >
         <button
           className={btnBase}
@@ -109,7 +109,6 @@ const GameControls = ({ onControl, sensitivity, onBoost }: GameControlsProps) =>
         >
           <span className="text-white text-xl font-bold">▶</span>
         </button>
-        <p className="text-[10px] tracking-wider opacity-40 text-foreground">STEER</p>
       </div>
 
       {/* CENTER BOTTOM: Boost button */}
