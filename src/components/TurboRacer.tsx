@@ -58,6 +58,7 @@ const TurboRacer = () => {
   const [currentMission, setCurrentMission] = useState<Mission>(MISSIONS[0]);
   const [coinCollections, setCoinCollections] = useState<{ value: number; id: number }[]>([]);
   const coinIdRef = useRef(0);
+  const boostActiveRef = useRef(false);
   const stateRef = useRef({
     running: false,
     score: 0,
@@ -403,8 +404,9 @@ const TurboRacer = () => {
     if (s.keys.ArrowUp && s.y > 0) s.y -= moveSpeed;
     if (s.keys.ArrowDown && s.y < H - CAR_H) s.y += moveSpeed;
 
-    s.score++;
-    s.speed = s.baseSpeed + s.car.speed + Math.floor(s.score / 2000);
+    const isBoost = boostActiveRef.current;
+    s.score += isBoost ? 3 : 1;
+    s.speed = (s.baseSpeed + s.car.speed + Math.floor(s.score / 2000)) * (isBoost ? 2.5 : 1);
 
     if (s.score % 10 === 0) {
       setScore(s.score);
@@ -628,6 +630,9 @@ const TurboRacer = () => {
             s.keys.ArrowRight = dir.right;
             s.keys.ArrowUp = dir.up;
             s.keys.ArrowDown = dir.down;
+          }}
+          onBoost={(active) => {
+            boostActiveRef.current = active;
           }}
         />
       )}
