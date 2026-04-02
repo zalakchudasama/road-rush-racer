@@ -631,6 +631,9 @@ const TurboRacer = () => {
             s.keys.ArrowUp = dir.up;
             s.keys.ArrowDown = dir.down;
           }}
+          onBoost={(active) => {
+            boostActiveRef.current = active;
+          }}
         />
       )}
 
