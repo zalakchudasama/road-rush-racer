@@ -58,6 +58,7 @@ const TurboRacer = () => {
   const [currentMission, setCurrentMission] = useState<Mission>(MISSIONS[0]);
   const [coinCollections, setCoinCollections] = useState<{ value: number; id: number }[]>([]);
   const coinIdRef = useRef(0);
+  const boostActiveRef = useRef(false);
   const stateRef = useRef({
     running: false,
     score: 0,
