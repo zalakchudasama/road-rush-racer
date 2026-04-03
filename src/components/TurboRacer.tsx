@@ -80,6 +80,7 @@ const TurboRacer = () => {
     theme: THEMES.rain as GameTheme,
     car: CARS[0] as CarData,
     targetScore: 20000,
+    missionId: "m1",
     missionDiamondBonus: 20,
     missionCoinBonus: 0,
   });
