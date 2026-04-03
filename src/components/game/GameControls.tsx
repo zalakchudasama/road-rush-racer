@@ -47,13 +47,9 @@ const GameControls = ({ onControl, sensitivity, onBoost }: GameControlsProps) =>
     return () => clearInterval(interval);
   }, [onBoost]);
 
-  const toggleBoost = useCallback(() => {
+  const activateBoost = useCallback(() => {
     const b = boostRef.current;
-    if (b.active) {
-      b.active = false;
-      setBoosting(false);
-      onBoost?.(false);
-    } else if (b.meter >= 30) {
+    if (!b.active && b.meter >= 30) {
       b.active = true;
       setBoosting(true);
       onBoost?.(true);
