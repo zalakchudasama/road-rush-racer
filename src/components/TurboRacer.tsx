@@ -370,10 +370,12 @@ const TurboRacer = () => {
     }
 
     for (const e of s.enemies) {
-      e.y -= s.speed * 0.6;
-      if (e.y < -CAR_H - 100) {
-        e.y = H + 100 + Math.random() * 300;
-        e.x = 20 + Math.random() * (GAME_WIDTH - 90);
+      if (s.missionId !== "m1") {
+        e.y -= s.speed * 0.6;
+        if (e.y < -CAR_H - 100) {
+          e.y = H + 100 + Math.random() * 300;
+          e.x = 20 + Math.random() * (GAME_WIDTH - 90);
+        }
       }
       // Draw enemy car facing upward (same direction as player)
       drawCar3D(ctx, e.x, e.y, "#ff8800", false);
