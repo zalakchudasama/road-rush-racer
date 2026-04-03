@@ -80,6 +80,7 @@ const TurboRacer = () => {
     theme: THEMES.rain as GameTheme,
     car: CARS[0] as CarData,
     targetScore: 20000,
+    missionId: "m1",
     missionDiamondBonus: 20,
     missionCoinBonus: 0,
   });
@@ -369,10 +370,12 @@ const TurboRacer = () => {
     }
 
     for (const e of s.enemies) {
-      e.y -= s.speed * 0.6;
-      if (e.y < -CAR_H - 100) {
-        e.y = H + 100 + Math.random() * 300;
-        e.x = 20 + Math.random() * (GAME_WIDTH - 90);
+      if (s.missionId !== "m1") {
+        e.y -= s.speed * 0.6;
+        if (e.y < -CAR_H - 100) {
+          e.y = H + 100 + Math.random() * 300;
+          e.x = 20 + Math.random() * (GAME_WIDTH - 90);
+        }
       }
       // Draw enemy car facing upward (same direction as player)
       drawCar3D(ctx, e.x, e.y, "#ff8800", false);
@@ -665,6 +668,7 @@ const TurboRacer = () => {
             onSelect={(m) => {
               setCurrentMission(m);
               stateRef.current.targetScore = m.target;
+              stateRef.current.missionId = m.id;
               stateRef.current.missionDiamondBonus = m.diamondBonus;
               stateRef.current.missionCoinBonus = m.coinBonus;
               setGameState("select");
