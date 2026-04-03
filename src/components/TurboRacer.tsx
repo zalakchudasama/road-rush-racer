@@ -668,6 +668,7 @@ const TurboRacer = () => {
             onSelect={(m) => {
               setCurrentMission(m);
               stateRef.current.targetScore = m.target;
+              stateRef.current.missionId = m.id;
               stateRef.current.missionDiamondBonus = m.diamondBonus;
               stateRef.current.missionCoinBonus = m.coinBonus;
               setGameState("select");
