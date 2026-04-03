@@ -114,7 +114,7 @@ const GameControls = ({ onControl, sensitivity, onBoost }: GameControlsProps) =>
       >
         <button
           className={btnBase}
-          onClick={toggleBoost}
+          onPointerDown={(e) => { e.preventDefault(); activateBoost(); }}
           style={{
             width: 64, height: 64, borderRadius: "50%",
             background: boosting
