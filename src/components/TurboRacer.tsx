@@ -639,7 +639,7 @@ const TurboRacer = () => {
 
       {/* Developer Credit */}
       <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50">
-        <p className="text-xs font-mono tracking-widest bg-background/50 px-4 py-1.5 rounded-full border border-orange-500/30 backdrop-blur-sm" style={{ color: 'rgba(200,160,100,0.7)' }}>
+        <p className="text-[10px] sm:text-xs font-mono tracking-widest bg-background/50 px-3 py-1 rounded-full border border-orange-500/30 backdrop-blur-sm whitespace-nowrap" style={{ color: 'rgba(200,160,100,0.7)' }}>
           Developed by{" "}
           <span
             className="font-extrabold text-sm"

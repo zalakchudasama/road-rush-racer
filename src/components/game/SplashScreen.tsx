@@ -97,7 +97,7 @@ const SplashScreen = ({ onComplete }: Props) => {
           transition={{ delay: 1 }}
           className="mt-8"
         >
-          <p className="text-xs tracking-widest" style={{ color: "rgba(200,160,100,0.6)" }}>
+          <p className="text-[10px] sm:text-xs tracking-widest whitespace-nowrap" style={{ color: "rgba(200,160,100,0.6)" }}>
             Developed by{" "}
             <span
               className="font-extrabold text-sm"
