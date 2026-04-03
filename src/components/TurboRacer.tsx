@@ -462,10 +462,14 @@ const TurboRacer = () => {
     s.diamonds_ = [];
     s.particles = [];
 
-    const enemyCount = s.missionId === "m1" ? 6 : 3;
-    for (let i = 0; i < enemyCount; i++) {
-      s.enemies.push({ x: 20 + Math.random() * (GAME_WIDTH - 90), y: canvas.height + 100 + i * 250 });
-    }
+     const enemyCount = s.missionId === "m1" ? 15 : 3;
+     for (let i = 0; i < enemyCount; i++) {
+       const randomX = 20 + Math.random() * (GAME_WIDTH - 90);
+       const randomY = s.missionId === "m1"
+         ? -(Math.random() * 3000 + 200)
+         : canvas.height + 100 + i * 250;
+       s.enemies.push({ x: randomX, y: randomY });
+     }
     for (let i = 0; i < 4; i++) {
       const ct = randomCoinType();
       s.coins_.push({
