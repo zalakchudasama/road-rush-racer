@@ -79,3 +79,20 @@ export const getSelectedCar = (): string => {
 export const setSelectedCar = (id: string) => {
   localStorage.setItem(SELECTED_KEY, id);
 };
+
+const COMPLETED_MISSIONS_KEY = "turbo_racer_completed_missions";
+
+export const getCompletedMissions = (): string[] => {
+  try {
+    const saved = localStorage.getItem(COMPLETED_MISSIONS_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch { return []; }
+};
+
+export const addCompletedMission = (missionId: string) => {
+  const completed = getCompletedMissions();
+  if (!completed.includes(missionId)) {
+    completed.push(missionId);
+    localStorage.setItem(COMPLETED_MISSIONS_KEY, JSON.stringify(completed));
+  }
+};
