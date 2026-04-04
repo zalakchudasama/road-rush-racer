@@ -16,7 +16,7 @@ export const MISSIONS: Mission[] = [
   { id: "m4", target: 18000, diamondBonus: 20, coinBonus: 3500, label: "🔴 Turbo Legend" },
 ];
 
-const MISSION_COLORS = ["#44dd44", "#ffcc00", "#ff8800", "#ff4444"];
+
 
 const playClickSound = () => {
   try {
