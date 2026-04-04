@@ -509,7 +509,7 @@ const TurboRacer = () => {
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
         ctx.fill();
         s.running = false;
-        addToWallet(s.coins * 10 + Math.floor(s.score / 10));
+        horrorMusicRef.current.stop();
         addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
         setTotalDiamonds(getDiamonds());
