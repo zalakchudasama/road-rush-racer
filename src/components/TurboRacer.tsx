@@ -16,6 +16,83 @@ const CAR_H = 80;
 type GameState = "splash" | "mission" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
+
+// Horror ambient music using Web Audio API
+const createHorrorMusic = (): { start: () => void; stop: () => void } => {
+  let ctx: AudioContext | null = null;
+  let nodes: OscillatorNode[] = [];
+  let gains: GainNode[] = [];
+  let lfo: OscillatorNode | null = null;
+
+  return {
+    start: () => {
+      try {
+        ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const master = ctx.createGain();
+        master.gain.value = 0.12;
+        master.connect(ctx.destination);
+
+        // Deep drone
+        const drone = ctx.createOscillator();
+        const droneGain = ctx.createGain();
+        drone.type = "sawtooth";
+        drone.frequency.value = 55;
+        droneGain.gain.value = 0.3;
+        drone.connect(droneGain);
+        droneGain.connect(master);
+        drone.start();
+        nodes.push(drone);
+        gains.push(droneGain);
+
+        // Eerie pad
+        const pad = ctx.createOscillator();
+        const padGain = ctx.createGain();
+        pad.type = "sine";
+        pad.frequency.value = 110;
+        padGain.gain.value = 0.15;
+        pad.connect(padGain);
+        padGain.connect(master);
+        pad.start();
+        nodes.push(pad);
+        gains.push(padGain);
+
+        // Dissonant high tone
+        const high = ctx.createOscillator();
+        const highGain = ctx.createGain();
+        high.type = "sine";
+        high.frequency.value = 233;
+        highGain.gain.value = 0.08;
+        high.connect(highGain);
+        highGain.connect(master);
+        high.start();
+        nodes.push(high);
+        gains.push(highGain);
+
+        // LFO for creepy wobble
+        lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.type = "sine";
+        lfo.frequency.value = 0.3;
+        lfoGain.gain.value = 8;
+        lfo.connect(lfoGain);
+        lfoGain.connect(drone.frequency);
+        lfoGain.connect(pad.frequency);
+        lfo.start();
+      } catch {}
+    },
+    stop: () => {
+      try {
+        nodes.forEach(n => { try { n.stop(); } catch {} });
+        if (lfo) try { lfo.stop(); } catch {}
+        if (ctx) ctx.close();
+        nodes = [];
+        gains = [];
+        lfo = null;
+        ctx = null;
+      } catch {}
+    }
+  };
+};
 interface GameCoin { x: number; y: number; value: number; color: string; label: string }
 interface GameDiamond { x: number; y: number }
 
