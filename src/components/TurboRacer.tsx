@@ -7,7 +7,7 @@ import SettingsButton from "./game/SettingsButton";
 import CarGarage from "./game/CarGarage";
 import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
-import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds } from "./game/cars";
+import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission } from "./game/cars";
 
 const GAME_WIDTH = 420;
 const CAR_W = 50;
