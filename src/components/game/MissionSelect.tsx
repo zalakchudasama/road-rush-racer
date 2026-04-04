@@ -76,14 +76,7 @@ const MissionSelect = ({ onSelect, diamonds }: Props) => {
                 <div className="text-left flex-1">
                   <div className="text-foreground font-bold text-sm flex items-center gap-2">
                     {m.label}
-                    {isCompleted && (
-                      <span
-                        className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
-                        style={{ background: "#44dd44", color: "#000" }}
-                      >
-                        ✅ COMPLETED
-                      </span>
-                    )}
+                    {isCompleted && <span className="text-lg">✅</span>}
                   </div>
                   <div className="text-muted-foreground text-xs">
                     🎯 Score Required: <span className="font-bold text-foreground">{m.target.toLocaleString()}</span>
