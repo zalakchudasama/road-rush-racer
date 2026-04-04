@@ -73,19 +73,7 @@ const MissionSelect = ({ onSelect, diamonds }: Props) => {
                   borderColor: isCompleted ? "#44dd44" : "hsl(var(--border))",
                 }}
               >
-                {/* Circle icon instead of car photo */}
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0"
-                  style={{
-                    background: `linear-gradient(135deg, ${MISSION_COLORS[idx]}, ${MISSION_COLORS[idx]}88)`,
-                    color: "#fff",
-                    boxShadow: `0 0 10px ${MISSION_COLORS[idx]}44`,
-                  }}
-                >
-                  {idx + 1}
-                </div>
-
-                <div className="text-left flex-1 ml-3">
+                <div className="text-left flex-1">
                   <div className="text-foreground font-bold text-sm flex items-center gap-2">
                     {m.label}
                     {isCompleted && (
