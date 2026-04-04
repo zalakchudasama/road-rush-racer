@@ -1,12 +1,34 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: string }>;
+}
+
 interface Props {
   onComplete: () => void;
 }
 
+let deferredPrompt: BeforeInstallPromptEvent | null = null;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e as BeforeInstallPromptEvent;
+  });
+}
+
 const SplashScreen = ({ onComplete }: Props) => {
   const [progress, setProgress] = useState(0);
+  const [canInstall, setCanInstall] = useState(false);
+
+  useEffect(() => {
+    if (deferredPrompt) setCanInstall(true);
+    const handler = () => setCanInstall(true);
+    window.addEventListener('beforeinstallprompt', handler as any);
+    return () => window.removeEventListener('beforeinstallprompt', handler as any);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -22,6 +44,14 @@ const SplashScreen = ({ onComplete }: Props) => {
     return () => clearInterval(interval);
   }, [onComplete]);
 
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    if (result.outcome === 'accepted') setCanInstall(false);
+    deferredPrompt = null;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -33,7 +63,6 @@ const SplashScreen = ({ onComplete }: Props) => {
       }}
     >
       <div className="flex flex-col items-center gap-6 px-6">
-        {/* Car animation */}
         <motion.div
           className="text-7xl"
           animate={{ x: [-30, 30, -30], rotate: [-3, 3, -3] }}
@@ -42,7 +71,6 @@ const SplashScreen = ({ onComplete }: Props) => {
           🏎️
         </motion.div>
 
-        {/* Game Title */}
         <motion.h1
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -57,7 +85,6 @@ const SplashScreen = ({ onComplete }: Props) => {
           TURBO RACER PRO
         </motion.h1>
 
-        {/* Tagline */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -67,7 +94,21 @@ const SplashScreen = ({ onComplete }: Props) => {
           SPEED • DODGE • WIN
         </motion.p>
 
-        {/* Loading bar */}
+        {/* Download / Install Button */}
+        {canInstall && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.8 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleInstall}
+            className="px-6 py-3 rounded-xl font-bold text-sm tracking-wider text-white flex items-center gap-2"
+            style={{ background: "linear-gradient(135deg, #00cc44, #00aa88)" }}
+          >
+            📲 INSTALL GAME
+          </motion.button>
+        )}
+
         <motion.div
           initial={{ opacity: 0, width: 0 }}
           animate={{ opacity: 1, width: 220 }}
@@ -90,7 +131,6 @@ const SplashScreen = ({ onComplete }: Props) => {
           </p>
         </motion.div>
 
-        {/* Developer credit */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
