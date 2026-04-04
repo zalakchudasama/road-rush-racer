@@ -85,7 +85,7 @@ const TurboRacer = () => {
     missionCoinBonus: 0,
   });
 
-  const drawCar3D = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, isPlayer: boolean) => {
+  const drawCar3D = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, isPlayer: boolean, facingDown?: boolean) => {
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.4)";
     ctx.beginPath();
