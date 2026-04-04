@@ -16,6 +16,83 @@ const CAR_H = 80;
 type GameState = "splash" | "mission" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
+
+// Horror ambient music using Web Audio API
+const createHorrorMusic = (): { start: () => void; stop: () => void } => {
+  let ctx: AudioContext | null = null;
+  let nodes: OscillatorNode[] = [];
+  let gains: GainNode[] = [];
+  let lfo: OscillatorNode | null = null;
+
+  return {
+    start: () => {
+      try {
+        ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const master = ctx.createGain();
+        master.gain.value = 0.12;
+        master.connect(ctx.destination);
+
+        // Deep drone
+        const drone = ctx.createOscillator();
+        const droneGain = ctx.createGain();
+        drone.type = "sawtooth";
+        drone.frequency.value = 55;
+        droneGain.gain.value = 0.3;
+        drone.connect(droneGain);
+        droneGain.connect(master);
+        drone.start();
+        nodes.push(drone);
+        gains.push(droneGain);
+
+        // Eerie pad
+        const pad = ctx.createOscillator();
+        const padGain = ctx.createGain();
+        pad.type = "sine";
+        pad.frequency.value = 110;
+        padGain.gain.value = 0.15;
+        pad.connect(padGain);
+        padGain.connect(master);
+        pad.start();
+        nodes.push(pad);
+        gains.push(padGain);
+
+        // Dissonant high tone
+        const high = ctx.createOscillator();
+        const highGain = ctx.createGain();
+        high.type = "sine";
+        high.frequency.value = 233;
+        highGain.gain.value = 0.08;
+        high.connect(highGain);
+        highGain.connect(master);
+        high.start();
+        nodes.push(high);
+        gains.push(highGain);
+
+        // LFO for creepy wobble
+        lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.type = "sine";
+        lfo.frequency.value = 0.3;
+        lfoGain.gain.value = 8;
+        lfo.connect(lfoGain);
+        lfoGain.connect(drone.frequency);
+        lfoGain.connect(pad.frequency);
+        lfo.start();
+      } catch {}
+    },
+    stop: () => {
+      try {
+        nodes.forEach(n => { try { n.stop(); } catch {} });
+        if (lfo) try { lfo.stop(); } catch {}
+        if (ctx) ctx.close();
+        nodes = [];
+        gains = [];
+        lfo = null;
+        ctx = null;
+      } catch {}
+    }
+  };
+};
 interface GameCoin { x: number; y: number; value: number; color: string; label: string }
 interface GameDiamond { x: number; y: number }
 
@@ -44,6 +121,7 @@ const getCarData = (): CarData => {
 
 const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const horrorMusicRef = useRef(createHorrorMusic());
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
@@ -85,7 +163,7 @@ const TurboRacer = () => {
     missionCoinBonus: 0,
   });
 
-  const drawCar3D = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, isPlayer: boolean) => {
+  const drawCar3D = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, isPlayer: boolean, facingDown?: boolean) => {
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.4)";
     ctx.beginPath();
@@ -369,13 +447,52 @@ const TurboRacer = () => {
       ctx.restore();
     }
 
-    for (const e of s.enemies) {
+    // Mission-specific enemy car color palettes
+    const MISSION_CAR_COLORS: Record<string, string[]> = {
+      m1: ["#888888", "#555555", "#aaaaaa", "#666666", "#999999"], // grey tones (parked)
+      m2: ["#00cc66", "#0099ff", "#cc00ff", "#ff6600", "#ffcc00"], // colorful oncoming
+      m3: ["#ff0066", "#9900ff", "#00ffcc", "#ff3300", "#6600cc"], // neon
+      m4: ["#ff0000", "#ff4400", "#cc0000", "#ff6600", "#dd2200"], // aggressive reds
+    };
+    const missionColors = MISSION_CAR_COLORS[s.missionId] || MISSION_CAR_COLORS.m3;
+
+    for (let ei = 0; ei < s.enemies.length; ei++) {
+      const e = s.enemies[ei];
+      const enemyColor = missionColors[ei % missionColors.length];
+      let isFacingDown = false;
+
       if (s.missionId === "m2") {
         // Mission 2: cars move top to bottom (coming towards player)
         e.y += s.speed * 0.8;
+        isFacingDown = true;
         if (e.y > H + CAR_H + 100) {
           e.y = -CAR_H - 100 - Math.random() * 300;
           e.x = 20 + Math.random() * (GAME_WIDTH - 90);
+        }
+      } else if (s.missionId === "m4") {
+        // Mission 4: cars come from all directions
+        const dir = ei % 4;
+        if (dir === 0) { // top to bottom
+          e.y += s.speed * 0.9;
+          isFacingDown = true;
+          if (e.y > H + CAR_H + 100) { e.y = -CAR_H - 200 - Math.random() * 300; e.x = 20 + Math.random() * (GAME_WIDTH - 90); }
+        } else if (dir === 1) { // bottom to top
+          e.y -= s.speed * 0.7;
+          if (e.y < -CAR_H - 100) { e.y = H + 100 + Math.random() * 300; e.x = 20 + Math.random() * (GAME_WIDTH - 90); }
+        } else if (dir === 2) { // left to right
+          (e as any).vx = (e as any).vx || s.speed * 0.6;
+          e.x += (e as any).vx;
+          e.y += s.speed * 0.3;
+          isFacingDown = true;
+          if (e.x > GAME_WIDTH + 50) { e.x = -CAR_W - 50; e.y = Math.random() * H; }
+          if (e.y > H + 100) { e.y = -CAR_H - 100; }
+        } else { // right to left
+          (e as any).vx = (e as any).vx || -(s.speed * 0.6);
+          e.x += (e as any).vx;
+          e.y += s.speed * 0.3;
+          isFacingDown = true;
+          if (e.x < -CAR_W - 50) { e.x = GAME_WIDTH + 50; e.y = Math.random() * H; }
+          if (e.y > H + 100) { e.y = -CAR_H - 100; }
         }
       } else if (s.missionId !== "m1") {
         // Other missions: cars move bottom to top
@@ -385,16 +502,14 @@ const TurboRacer = () => {
           e.x = 20 + Math.random() * (GAME_WIDTH - 90);
         }
       }
-      // Draw enemy car - flip for mission 2 (facing player)
-      const facingDown = s.missionId === "m2";
-      drawCar3D(ctx, e.x, e.y, "#ff8800", facingDown);
+      drawCar3D(ctx, e.x, e.y, enemyColor, false, isFacingDown);
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, e.x, e.y, CAR_W, CAR_H)) {
         ctx.fillStyle = "rgba(255,100,0,0.6)";
         ctx.beginPath();
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
         ctx.fill();
         s.running = false;
-        addToWallet(s.coins * 10 + Math.floor(s.score / 10));
+        horrorMusicRef.current.stop();
         addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
         setTotalDiamonds(getDiamonds());
@@ -428,7 +543,7 @@ const TurboRacer = () => {
 
     if (s.score >= s.targetScore) {
       s.running = false;
-      addCompletedMission(s.missionId);
+      horrorMusicRef.current.stop();
       addToWallet(s.coins * 10 + Math.floor(s.score / 10) + s.missionCoinBonus);
       addDiamonds(s.diamonds + s.missionDiamondBonus);
       setTotalWallet(getWallet());
@@ -472,12 +587,18 @@ const TurboRacer = () => {
     s.diamonds_ = [];
     s.particles = [];
 
-     const enemyCount = s.missionId === "m1" ? 15 : 3;
+     const enemyCount = s.missionId === "m1" ? 15 : s.missionId === "m4" ? 8 : 3;
      for (let i = 0; i < enemyCount; i++) {
        const randomX = 20 + Math.random() * (GAME_WIDTH - 90);
-       const randomY = s.missionId === "m1"
-         ? -(Math.random() * 3000 + 200)
-         : canvas.height + 100 + i * 250;
+       let randomY: number;
+       if (s.missionId === "m1") {
+         randomY = -(Math.random() * 3000 + 200);
+       } else if (s.missionId === "m4") {
+         // Spread around all sides
+         randomY = i % 2 === 0 ? -(Math.random() * 500 + 100) : canvas.height + 100 + Math.random() * 300;
+       } else {
+         randomY = canvas.height + 100 + i * 250;
+       }
        s.enemies.push({ x: randomX, y: randomY });
      }
     for (let i = 0; i < 4; i++) {
@@ -513,6 +634,7 @@ const TurboRacer = () => {
     setCoins(0);
     setDiamonds_(0);
     setCoinCollections([]);
+    horrorMusicRef.current.start();
     s.rafId = requestAnimationFrame(loop);
   }, [loop, sensitivity]);
 
@@ -603,6 +725,7 @@ const TurboRacer = () => {
             whileTap={{ scale: 0.9 }}
             onClick={() => {
               stateRef.current.running = false;
+              horrorMusicRef.current.stop();
               setGameState("paused");
             }}
             className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-background/80 border-2 border-primary/50 flex items-center justify-center text-lg"
