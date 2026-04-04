@@ -543,7 +543,7 @@ const TurboRacer = () => {
 
     if (s.score >= s.targetScore) {
       s.running = false;
-      addCompletedMission(s.missionId);
+      horrorMusicRef.current.stop();
       addToWallet(s.coins * 10 + Math.floor(s.score / 10) + s.missionCoinBonus);
       addDiamonds(s.diamonds + s.missionDiamondBonus);
       setTotalWallet(getWallet());
