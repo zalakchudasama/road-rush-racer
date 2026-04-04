@@ -369,13 +369,52 @@ const TurboRacer = () => {
       ctx.restore();
     }
 
-    for (const e of s.enemies) {
+    // Mission-specific enemy car color palettes
+    const MISSION_CAR_COLORS: Record<string, string[]> = {
+      m1: ["#888888", "#555555", "#aaaaaa", "#666666", "#999999"], // grey tones (parked)
+      m2: ["#00cc66", "#0099ff", "#cc00ff", "#ff6600", "#ffcc00"], // colorful oncoming
+      m3: ["#ff0066", "#9900ff", "#00ffcc", "#ff3300", "#6600cc"], // neon
+      m4: ["#ff0000", "#ff4400", "#cc0000", "#ff6600", "#dd2200"], // aggressive reds
+    };
+    const missionColors = MISSION_CAR_COLORS[s.missionId] || MISSION_CAR_COLORS.m3;
+
+    for (let ei = 0; ei < s.enemies.length; ei++) {
+      const e = s.enemies[ei];
+      const enemyColor = missionColors[ei % missionColors.length];
+      let isFacingDown = false;
+
       if (s.missionId === "m2") {
         // Mission 2: cars move top to bottom (coming towards player)
         e.y += s.speed * 0.8;
+        isFacingDown = true;
         if (e.y > H + CAR_H + 100) {
           e.y = -CAR_H - 100 - Math.random() * 300;
           e.x = 20 + Math.random() * (GAME_WIDTH - 90);
+        }
+      } else if (s.missionId === "m4") {
+        // Mission 4: cars come from all directions
+        const dir = ei % 4;
+        if (dir === 0) { // top to bottom
+          e.y += s.speed * 0.9;
+          isFacingDown = true;
+          if (e.y > H + CAR_H + 100) { e.y = -CAR_H - 200 - Math.random() * 300; e.x = 20 + Math.random() * (GAME_WIDTH - 90); }
+        } else if (dir === 1) { // bottom to top
+          e.y -= s.speed * 0.7;
+          if (e.y < -CAR_H - 100) { e.y = H + 100 + Math.random() * 300; e.x = 20 + Math.random() * (GAME_WIDTH - 90); }
+        } else if (dir === 2) { // left to right
+          (e as any).vx = (e as any).vx || s.speed * 0.6;
+          e.x += (e as any).vx;
+          e.y += s.speed * 0.3;
+          isFacingDown = true;
+          if (e.x > GAME_WIDTH + 50) { e.x = -CAR_W - 50; e.y = Math.random() * H; }
+          if (e.y > H + 100) { e.y = -CAR_H - 100; }
+        } else { // right to left
+          (e as any).vx = (e as any).vx || -(s.speed * 0.6);
+          e.x += (e as any).vx;
+          e.y += s.speed * 0.3;
+          isFacingDown = true;
+          if (e.x < -CAR_W - 50) { e.x = GAME_WIDTH + 50; e.y = Math.random() * H; }
+          if (e.y > H + 100) { e.y = -CAR_H - 100; }
         }
       } else if (s.missionId !== "m1") {
         // Other missions: cars move bottom to top
@@ -385,9 +424,7 @@ const TurboRacer = () => {
           e.x = 20 + Math.random() * (GAME_WIDTH - 90);
         }
       }
-      // Draw enemy car - flip for mission 2 (facing player)
-      const facingDown = s.missionId === "m2";
-      drawCar3D(ctx, e.x, e.y, "#ff8800", facingDown);
+      drawCar3D(ctx, e.x, e.y, enemyColor, false, isFacingDown);
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, e.x, e.y, CAR_W, CAR_H)) {
         ctx.fillStyle = "rgba(255,100,0,0.6)";
         ctx.beginPath();
