@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { getCompletedMissions } from "./cars";
 
 export interface Mission {
   id: string;
@@ -16,12 +16,32 @@ export const MISSIONS: Mission[] = [
   { id: "m4", target: 18000, diamondBonus: 20, coinBonus: 3500, label: "🔴 Turbo Legend" },
 ];
 
+const MISSION_COLORS = ["#44dd44", "#ffcc00", "#ff8800", "#ff4444"];
+
+const playClickSound = () => {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 800;
+    osc.type = "square";
+    gain.gain.value = 0.15;
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    osc.stop(ctx.currentTime + 0.1);
+  } catch {}
+};
+
 interface Props {
   onSelect: (mission: Mission) => void;
   diamonds: number;
 }
 
 const MissionSelect = ({ onSelect, diamonds }: Props) => {
+  const completedMissions = getCompletedMissions();
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -42,33 +62,66 @@ const MissionSelect = ({ onSelect, diamonds }: Props) => {
         </p>
 
         <div className="flex flex-col gap-3 mb-4">
-          {MISSIONS.map((m) => (
-            <motion.div
-              key={m.id}
-              whileHover={{ scale: 1.03 }}
-              className="flex items-center justify-between px-4 py-3 rounded-xl border-2 border-border bg-card"
-            >
-              <div className="text-left flex-1">
-                <div className="text-foreground font-bold text-sm">{m.label}</div>
-                <div className="text-muted-foreground text-xs">Target: {m.target.toLocaleString()} pts</div>
-                <div className="flex gap-2 mt-1">
-                  <span className="text-xs font-mono" style={{ color: "#00d4ff" }}>+{m.diamondBonus} 💎</span>
-                  <span className="text-xs font-mono" style={{ color: "#ffd700" }}>+{m.coinBonus} 💰</span>
-                </div>
-              </div>
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => onSelect(m)}
-                className="ml-3 px-4 py-2 rounded-lg font-bold text-xs text-primary-foreground tracking-wider"
-                style={{ background: "linear-gradient(135deg, #ff4444, #ff8800)" }}
+          {MISSIONS.map((m, idx) => {
+            const isCompleted = completedMissions.includes(m.id);
+            return (
+              <motion.div
+                key={m.id}
+                whileHover={{ scale: 1.03 }}
+                className="flex items-center justify-between px-4 py-3 rounded-xl border-2 bg-card relative"
+                style={{
+                  borderColor: isCompleted ? "#44dd44" : "hsl(var(--border))",
+                }}
               >
-                🚀 START
-              </motion.button>
-            </motion.div>
-          ))}
+                {/* Circle icon instead of car photo */}
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0"
+                  style={{
+                    background: `linear-gradient(135deg, ${MISSION_COLORS[idx]}, ${MISSION_COLORS[idx]}88)`,
+                    color: "#fff",
+                    boxShadow: `0 0 10px ${MISSION_COLORS[idx]}44`,
+                  }}
+                >
+                  {idx + 1}
+                </div>
+
+                <div className="text-left flex-1 ml-3">
+                  <div className="text-foreground font-bold text-sm flex items-center gap-2">
+                    {m.label}
+                    {isCompleted && (
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                        style={{ background: "#44dd44", color: "#000" }}
+                      >
+                        ✅ COMPLETED
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-muted-foreground text-xs">
+                    🎯 Score Required: <span className="font-bold text-foreground">{m.target.toLocaleString()}</span>
+                  </div>
+                  <div className="flex gap-2 mt-1">
+                    <span className="text-xs font-mono" style={{ color: "#00d4ff" }}>+{m.diamondBonus} 💎</span>
+                  </div>
+                </div>
+
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => {
+                    playClickSound();
+                    onSelect(m);
+                  }}
+                  className="ml-3 px-4 py-2 rounded-lg font-bold text-xs text-primary-foreground tracking-wider"
+                  style={{ background: "linear-gradient(135deg, #ff4444, #ff8800)" }}
+                >
+                  🚀 START
+                </motion.button>
+              </motion.div>
+            );
+          })}
         </div>
 
-        <p className="text-muted-foreground text-[10px]">Win missions to earn diamonds & bonus coins!</p>
+        <p className="text-muted-foreground text-[10px]">Win missions to earn diamonds & bonus score!</p>
       </div>
     </motion.div>
   );
