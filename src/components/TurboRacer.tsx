@@ -634,6 +634,7 @@ const TurboRacer = () => {
     setCoins(0);
     setDiamonds_(0);
     setCoinCollections([]);
+    horrorMusicRef.current.start();
     s.rafId = requestAnimationFrame(loop);
   }, [loop, sensitivity]);
 
