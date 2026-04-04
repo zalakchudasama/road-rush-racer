@@ -121,6 +121,7 @@ const getCarData = (): CarData => {
 
 const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const horrorMusicRef = useRef(createHorrorMusic());
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
