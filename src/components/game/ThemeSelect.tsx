@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { THEMES, ThemeId } from "./themes";
+import { playClickSound } from "./sounds";
 
 interface Props {
   onSelect: (id: ThemeId) => void;
@@ -38,7 +39,7 @@ const ThemeSelect = ({ onSelect, onGarage }: Props) => {
                 <span className="text-muted-foreground text-[10px]">{t.description}</span>
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => onSelect(id)}
+                  onClick={() => { playClickSound(); onSelect(id); }}
                   className="mt-1 w-full py-1.5 rounded-lg font-bold text-xs text-primary-foreground tracking-wider"
                   style={{ background: "linear-gradient(135deg, #44dd44, #22aa22)" }}
                 >
@@ -53,7 +54,7 @@ const ThemeSelect = ({ onSelect, onGarage }: Props) => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={onGarage}
+            onClick={() => { playClickSound(); onGarage!(); }}
             className="mb-4 px-5 py-2 rounded-xl font-bold text-sm"
             style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
           >
