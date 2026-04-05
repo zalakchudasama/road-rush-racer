@@ -50,10 +50,15 @@ const CarGarage = ({ onBack, onCarChanged }: Props) => {
       >
         <div className="text-4xl mb-2">🏪</div>
         <h2 className="text-xl font-bold text-foreground mb-1 tracking-wider">CAR GARAGE</h2>
-        <div className="flex items-center justify-center gap-1 mb-3">
-          <span className="text-lg">💰</span>
-          <span className="font-bold text-lg" style={{ color: "#ffd700" }}>{wallet.toLocaleString()}</span>
-          <span className="text-muted-foreground text-xs ml-1">coins</span>
+        <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="flex items-center gap-1">
+            <span className="text-lg">💰</span>
+            <span className="font-bold text-lg" style={{ color: "#ffd700" }}>{wallet.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-lg">💎</span>
+            <span className="font-bold text-lg" style={{ color: "#00d4ff" }}>{getDiamonds().toLocaleString()}</span>
+          </div>
         </div>
 
         <AnimatePresence>
