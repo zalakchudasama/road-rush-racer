@@ -9,7 +9,7 @@ import CarGarage from "./game/CarGarage";
 import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
 import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission } from "./game/cars";
-import { playClickSound } from "./game/sounds";
+import { playClickSound, playCoinSound } from "./game/sounds";
 
 const GAME_WIDTH = 420;
 const CAR_W = 50;
@@ -333,6 +333,7 @@ const TurboRacer = () => {
     ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 
   const addCoinPopup = useCallback((value: number) => {
+    playCoinSound();
     const id = ++coinIdRef.current;
     setCoinCollections(prev => [...prev.slice(-4), { value, id }]);
     setTimeout(() => {
@@ -677,37 +678,19 @@ const TurboRacer = () => {
       {/* HUD */}
       {gameState === "playing" && (
         <>
-          <div className="fixed top-4 left-4 z-50 space-y-1">
-            <div className="text-foreground text-sm font-mono tracking-wider bg-background/80 px-2 py-1 rounded-md border border-primary/30">
-              🏁 Score: <span className="text-primary font-bold">{score}</span>
+          <div className="fixed top-4 left-4 z-50 flex items-center gap-2">
+            <div className="bg-background/80 px-2 py-1 rounded-md border border-primary/30 flex items-center gap-1">
+              <span>🏁</span>
+              <span className="text-primary font-bold text-sm font-mono">{score}</span>
             </div>
-            <div className="text-foreground text-sm font-mono tracking-wider bg-background/80 px-2 py-1 rounded-md border border-accent/30">
-              💰 Coins: <span className="font-bold" style={{ color: "#ffd700" }}>{coins}</span>
+            <div className="bg-background/80 px-2 py-1 rounded-md border border-accent/30 flex items-center gap-1">
+              <span>💰</span>
+              <span className="font-bold text-sm font-mono" style={{ color: "#ffd700" }}>{coins}</span>
             </div>
-            <div className="text-foreground text-sm font-mono tracking-wider bg-background/80 px-2 py-1 rounded-md border" style={{ borderColor: "rgba(0,212,255,0.3)" }}>
-              💎 Diamonds: <span className="font-bold" style={{ color: "#00d4ff" }}>{diamonds}</span>
+            <div className="bg-background/80 px-2 py-1 rounded-md border flex items-center gap-1" style={{ borderColor: "rgba(0,212,255,0.3)" }}>
+              <span>💎</span>
+              <span className="font-bold text-sm font-mono" style={{ color: "#00d4ff" }}>{diamonds}</span>
             </div>
-            <div className="text-muted-foreground text-xs font-mono bg-background/80 px-2 py-1 rounded-md border border-border">
-              {currentCar.emoji} {currentCar.name}
-            </div>
-            <div className="text-muted-foreground text-xs font-mono bg-background/80 px-2 py-1 rounded-md border border-border">
-              {theme.emoji} {theme.name}
-            </div>
-            {lastScore > 0 && (
-              <div className="text-muted-foreground text-xs font-mono bg-background/80 px-2 py-1 rounded-md border border-border">
-                📊 Last: {lastScore.toLocaleString()} | 💰 {lastCoins}
-              </div>
-            )}
-          </div>
-
-          {/* Coin value legend */}
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
-            {COIN_TYPES.map((ct) => (
-              <div key={ct.value} className="flex items-center gap-1 bg-background/80 px-2 py-0.5 rounded-full border border-border text-xs font-mono">
-                <span className="w-3 h-3 rounded-full inline-block" style={{ background: ct.color }} />
-                <span className="text-foreground">{ct.value}</span>
-              </div>
-            ))}
           </div>
 
           {/* Progress bar moved below pause/settings */}
