@@ -799,7 +799,11 @@ const TurboRacer = () => {
 
       <AnimatePresence>
         {gameState === "splash" && (
-          <SplashScreen onComplete={() => setGameState("mission")} />
+          <SplashScreen onComplete={() => setGameState("start")} />
+        )}
+
+        {gameState === "start" && (
+          <StartScreen onStart={() => setGameState("mission")} />
         )}
 
         {gameState === "mission" && (
