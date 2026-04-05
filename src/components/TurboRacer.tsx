@@ -870,6 +870,7 @@ const TurboRacer = () => {
                   whileTap={{ scale: 0.95 }}
                   className="px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
                   onClick={() => {
+                    playClickSound();
                     stateRef.current.running = false;
                     setGameState("mission");
                   }}
