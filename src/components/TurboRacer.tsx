@@ -857,6 +857,7 @@ const TurboRacer = () => {
                   className="px-5 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, #44dd44, #22aa22)" }}
                   onClick={() => {
+                    playClickSound();
                     stateRef.current.running = true;
                     setGameState("playing");
                     stateRef.current.rafId = requestAnimationFrame(loop);
