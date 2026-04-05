@@ -2,12 +2,14 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeSelect from "./game/ThemeSelect";
 import SplashScreen from "./game/SplashScreen";
+import StartScreen from "./game/StartScreen";
 import GameControls from "./game/GameControls";
 import SettingsButton from "./game/SettingsButton";
 import CarGarage from "./game/CarGarage";
 import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
 import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission } from "./game/cars";
+import { playClickSound } from "./game/sounds";
 
 const GAME_WIDTH = 420;
 const CAR_W = 50;
