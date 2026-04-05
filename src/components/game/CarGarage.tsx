@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CARS, CarData, getWallet, getOwnedCars, buyCar, getSelectedCar, setSelectedCar } from "./cars";
+import { CARS, CarData, getWallet, getOwnedCars, buyCar, getSelectedCar, setSelectedCar, getDiamonds } from "./cars";
+import { playClickSound } from "./sounds";
 
 interface Props {
   onBack: () => void;
