@@ -15,7 +15,7 @@ const GAME_WIDTH = 420;
 const CAR_W = 50;
 const CAR_H = 80;
 
-type GameState = "splash" | "mission" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
+type GameState = "splash" | "start" | "mission" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
 
