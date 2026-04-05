@@ -726,6 +726,7 @@ const TurboRacer = () => {
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => {
+              playClickSound();
               stateRef.current.running = false;
               horrorMusicRef.current.stop();
               setGameState("paused");
