@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { THEMES, ThemeId } from "./themes";
+import { playClickSound } from "./sounds";
 
 interface Props {
   onSelect: (id: ThemeId) => void;
