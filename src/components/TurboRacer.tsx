@@ -808,7 +808,6 @@ const TurboRacer = () => {
 
         {gameState === "mission" && (
           <MissionSelect
-            diamonds={totalDiamonds}
             onSelect={(m) => {
               setCurrentMission(m);
               stateRef.current.targetScore = m.target;
