@@ -942,13 +942,13 @@ const TurboRacer = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center z-40"
+            className="absolute inset-0 flex flex-col items-center justify-end pb-16 z-40"
           >
             <motion.div
               initial={{ scale: 1.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", damping: 12 }}
-              className="bg-background/95 border-2 border-destructive rounded-2xl px-8 py-6 text-center max-w-xs"
+              className="bg-background/95 border-2 border-destructive rounded-2xl px-8 py-6 text-center max-w-xs w-full"
               style={{ boxShadow: "0 0 40px rgba(255,50,50,0.3)" }}
             >
               <motion.div
@@ -962,32 +962,34 @@ const TurboRacer = () => {
               <p className="text-foreground text-base mb-1">Score: <span className="font-bold text-primary">{score.toLocaleString()}</span></p>
               <p className="text-foreground mb-1">Coins earned: <span className="font-bold" style={{ color: "#ffd700" }}>{(coins * 10 + Math.floor(score / 10)).toLocaleString()}</span> 💰</p>
               <p className="text-muted-foreground text-xs mb-3">Wallet: 💰 {totalWallet.toLocaleString()}</p>
-              <div className="flex gap-2 justify-center flex-wrap mt-2">
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="flex gap-2 justify-center">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-4 py-2.5 rounded-xl font-bold text-sm"
+                    style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
+                    onClick={() => { playClickSound(); setGameState("garage"); }}
+                  >
+                    🏪 GARAGE
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
+                    onClick={() => { playClickSound(); setGameState("mission"); }}
+                  >
+                    🗺️ CHANGE
+                  </motion.button>
+                </div>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-4 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
+                  className="w-full px-4 py-3 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, hsl(var(--primary)), #ff6644)" }}
-                  onClick={() => startGame(theme.id)}
+                  onClick={() => { playClickSound(); startGame(theme.id); }}
                 >
                   🔄 TRY AGAIN
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-4 py-2.5 rounded-xl font-bold text-sm"
-                  style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
-                  onClick={() => setGameState("garage")}
-                >
-                  🏪 GARAGE
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-                  onClick={() => setGameState("mission")}
-                >
-                  🗺️ CHANGE
                 </motion.button>
               </div>
             </motion.div>
