@@ -1,11 +1,44 @@
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { playClickSound } from "./sounds";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: string }>;
+}
 
 interface Props {
   onStart: () => void;
 }
 
+let deferredPrompt: BeforeInstallPromptEvent | null = null;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e as BeforeInstallPromptEvent;
+  });
+}
+
 const StartScreen = ({ onStart }: Props) => {
+  const [canInstall, setCanInstall] = useState(false);
+
+  useEffect(() => {
+    if (deferredPrompt) setCanInstall(true);
+    const handler = () => setCanInstall(true);
+    window.addEventListener('beforeinstallprompt', handler as any);
+    return () => window.removeEventListener('beforeinstallprompt', handler as any);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    playClickSound();
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    if (result.outcome === 'accepted') setCanInstall(false);
+    deferredPrompt = null;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -67,6 +100,25 @@ const StartScreen = ({ onStart }: Props) => {
         >
           🎮 START GAME
         </motion.button>
+
+        {/* Download Now Button */}
+        {canInstall && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 1.1, type: "spring" }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={handleInstall}
+            className="px-8 py-3 rounded-2xl font-extrabold text-sm tracking-widest text-white flex items-center gap-2"
+            style={{
+              background: "linear-gradient(135deg, #00cc44, #00aa88)",
+              boxShadow: "0 0 20px rgba(0,204,68,0.4)",
+            }}
+          >
+            📲 DOWNLOAD NOW
+          </motion.button>
+        )}
 
         {/* Developer credit */}
         <motion.div
