@@ -39,7 +39,7 @@ const ThemeSelect = ({ onSelect, onGarage }: Props) => {
                 <span className="text-muted-foreground text-[10px]">{t.description}</span>
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => onSelect(id)}
+                  onClick={() => { playClickSound(); onSelect(id); }}
                   className="mt-1 w-full py-1.5 rounded-lg font-bold text-xs text-primary-foreground tracking-wider"
                   style={{ background: "linear-gradient(135deg, #44dd44, #22aa22)" }}
                 >
