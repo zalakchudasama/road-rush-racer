@@ -333,6 +333,7 @@ const TurboRacer = () => {
     ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 
   const addCoinPopup = useCallback((value: number) => {
+    playCoinSound();
     const id = ++coinIdRef.current;
     setCoinCollections(prev => [...prev.slice(-4), { value, id }]);
     setTimeout(() => {
