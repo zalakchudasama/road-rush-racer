@@ -910,7 +910,7 @@ const TurboRacer = () => {
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, hsl(var(--accent)), #ffaa00)" }}
-                  onClick={() => startGame(theme.id)}
+                  onClick={() => { playClickSound(); startGame(theme.id); }}
                 >
                   🔄 PLAY AGAIN
                 </motion.button>
@@ -919,7 +919,7 @@ const TurboRacer = () => {
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm"
                   style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
-                  onClick={() => setGameState("garage")}
+                  onClick={() => { playClickSound(); setGameState("garage"); }}
                 >
                   🏪 GARAGE
                 </motion.button>
@@ -927,7 +927,7 @@ const TurboRacer = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-                  onClick={() => setGameState("mission")}
+                  onClick={() => { playClickSound(); setGameState("mission"); }}
                 >
                   🗺️ CHANGE
                 </motion.button>
