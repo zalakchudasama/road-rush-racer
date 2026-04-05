@@ -54,7 +54,7 @@ const ThemeSelect = ({ onSelect, onGarage }: Props) => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={onGarage}
+            onClick={() => { playClickSound(); onGarage!(); }}
             className="mb-4 px-5 py-2 rounded-xl font-bold text-sm"
             style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
           >
