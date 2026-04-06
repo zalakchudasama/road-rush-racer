@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { playClickSound } from "./sounds";
+import scorpioBg from "@/assets/scorpio-bg.jpg";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -44,13 +45,23 @@ const StartScreen = ({ onStart }: Props) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 flex items-center justify-center z-50"
-      style={{ background: "radial-gradient(ellipse at center, #1a0a00 0%, #000000 70%)" }}
+      className="absolute inset-0 flex items-center justify-center z-50 overflow-hidden"
     >
-      <div className="flex flex-col items-center gap-6 px-6">
-        {/* Animated car */}
+      {/* Scorpio Background */}
+      <div className="absolute inset-0">
+        <img
+          src={scorpioBg}
+          alt="Scorpio Classic S11"
+          className="w-full h-full object-cover"
+          style={{ filter: "brightness(0.4)" }}
+        />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.8) 100%)" }} />
+      </div>
+
+      <div className="relative flex flex-col items-center gap-5 px-6">
+        {/* Animated car emoji */}
         <motion.div
-          className="text-8xl"
+          className="text-7xl"
           animate={{ x: [-20, 20, -20], rotate: [-2, 2, -2] }}
           transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
         >
@@ -76,7 +87,8 @@ const StartScreen = ({ onStart }: Props) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="text-muted-foreground text-sm tracking-[0.3em]"
+          className="text-sm tracking-[0.3em]"
+          style={{ color: "rgba(200,200,200,0.7)" }}
         >
           SPEED • DODGE • WIN
         </motion.p>
@@ -92,7 +104,7 @@ const StartScreen = ({ onStart }: Props) => {
             playClickSound();
             onStart();
           }}
-          className="mt-4 px-10 py-4 rounded-2xl font-extrabold text-lg tracking-widest text-white"
+          className="mt-2 px-10 py-4 rounded-2xl font-extrabold text-lg tracking-widest text-white"
           style={{
             background: "linear-gradient(135deg, #ff4444, #ff8800)",
             boxShadow: "0 0 30px rgba(255,68,68,0.5), 0 0 60px rgba(255,136,0,0.3)",
@@ -125,7 +137,7 @@ const StartScreen = ({ onStart }: Props) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2 }}
-          className="mt-8"
+          className="mt-6"
         >
           <p className="text-[10px] sm:text-xs tracking-widest whitespace-nowrap" style={{ color: "rgba(200,160,100,0.6)" }}>
             Developed by{" "}
