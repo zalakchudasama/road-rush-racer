@@ -824,6 +824,7 @@ const TurboRacer = () => {
           <CarGarage
             onBack={() => setGameState("start")}
             onCarChanged={refreshCar}
+            onNext={() => { playClickSound(); setGameState("mission"); }}
           />
         )}
 
