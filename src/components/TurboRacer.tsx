@@ -800,11 +800,16 @@ const TurboRacer = () => {
               stateRef.current.missionCoinBonus = m.coinBonus;
               setGameState("select");
             }}
+            onBack={() => { playClickSound(); setGameState("start"); }}
           />
         )}
 
         {gameState === "select" && (
-          <ThemeSelect onSelect={(id) => startGame(id)} onGarage={() => setGameState("garage")} />
+          <ThemeSelect
+            onSelect={(id) => startGame(id)}
+            onGarage={() => setGameState("garage")}
+            onBack={() => { playClickSound(); setGameState("mission"); }}
+          />
         )}
 
         {gameState === "garage" && (
