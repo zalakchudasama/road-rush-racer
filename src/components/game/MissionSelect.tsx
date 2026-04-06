@@ -19,9 +19,10 @@ export const MISSIONS: Mission[] = [
 
 interface Props {
   onSelect: (mission: Mission) => void;
+  onBack?: () => void;
 }
 
-const MissionSelect = ({ onSelect }: Props) => {
+const MissionSelect = ({ onSelect, onBack }: Props) => {
   const completedMissions = getCompletedMissions();
 
   return (
@@ -36,6 +37,15 @@ const MissionSelect = ({ onSelect }: Props) => {
         className="bg-background/95 border-2 border-primary rounded-2xl px-6 py-5 text-center max-w-sm w-full"
         style={{ boxShadow: "0 0 40px rgba(255,50,50,0.3)" }}
       >
+        {onBack && (
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => { playClickSound(); onBack(); }}
+            className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold border-2 border-border text-foreground bg-card"
+          >
+            ←
+          </motion.button>
+        )}
         <div className="text-4xl mb-2">🎯</div>
         <h1 className="text-2xl font-bold text-foreground mb-1 tracking-wider">SELECT MISSION</h1>
         <p className="text-muted-foreground text-xs mb-4">Tap START on a mission to begin</p>

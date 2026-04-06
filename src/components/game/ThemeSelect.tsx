@@ -5,11 +5,12 @@ import { playClickSound } from "./sounds";
 interface Props {
   onSelect: (id: ThemeId) => void;
   onGarage?: () => void;
+  onBack?: () => void;
 }
 
 const themeList: ThemeId[] = ["rain", "lava", "ice", "desert"];
 
-const ThemeSelect = ({ onSelect, onGarage }: Props) => {
+const ThemeSelect = ({ onSelect, onGarage, onBack }: Props) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -21,6 +22,15 @@ const ThemeSelect = ({ onSelect, onGarage }: Props) => {
         className="bg-background/95 border-2 border-primary rounded-2xl px-8 py-6 text-center max-w-sm w-full"
         style={{ boxShadow: "0 0 40px rgba(255,50,50,0.3)" }}
       >
+        {onBack && (
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => { playClickSound(); onBack(); }}
+            className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold border-2 border-border text-foreground bg-card"
+          >
+            ←
+          </motion.button>
+        )}
         <div className="text-5xl mb-3">🏎️</div>
         <h1 className="text-2xl font-bold text-foreground mb-1 tracking-wider">TURBO RACER PRO</h1>
         <p className="text-muted-foreground text-sm mb-4">Tap PLAY on a road to begin</p>
