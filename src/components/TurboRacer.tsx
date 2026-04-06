@@ -971,25 +971,14 @@ const TurboRacer = () => {
               <p className="text-foreground mb-1">Coins earned: <span className="font-bold" style={{ color: "#ffd700" }}>{(coins * 10 + Math.floor(score / 10)).toLocaleString()}</span> 💰</p>
               <p className="text-muted-foreground text-xs mb-3">Wallet: 💰 {totalWallet.toLocaleString()}</p>
               <div className="flex flex-col gap-2 mt-2">
-                <div className="flex gap-2 justify-center">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2.5 rounded-xl font-bold text-sm"
-                    style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
-                    onClick={() => { playClickSound(); setGameState("garage"); }}
-                  >
-                    🏪 GARAGE
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-                    onClick={() => { playClickSound(); setGameState("mission"); }}
-                  >
-                    🗺️ CHANGE
-                  </motion.button>
-                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
+                  onClick={() => { playClickSound(); setGameState("mission"); }}
+                >
+                  🗺️ MISSIONS
+                </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
