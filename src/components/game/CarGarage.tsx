@@ -161,6 +161,17 @@ const CarGarage = ({ onBack, onCarChanged, onNext }: Props) => {
             ›
           </motion.button>
         </div>
+
+        {onNext && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { playClickSound(); onNext(); }}
+            className="mt-4 px-8 py-3 rounded-xl font-bold text-sm text-primary-foreground tracking-wider"
+            style={{ background: "linear-gradient(135deg, #ff4444, #ff8800)" }}
+          >
+            🎯 MISSIONS →
+          </motion.button>
+        )}
       </div>
     </motion.div>
   );
