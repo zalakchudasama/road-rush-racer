@@ -153,7 +153,7 @@ const getCarData = (): CarData => {
 
 const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const horrorMusicRef = useRef(createHorrorMusic());
+  const racingMusicRef = useRef(createRacingMusic());
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
@@ -542,7 +542,7 @@ const TurboRacer = () => {
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
         ctx.fill();
         s.running = false;
-        horrorMusicRef.current.stop();
+        racingMusicRef.current.stop();
         addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
         setTotalDiamonds(getDiamonds());
@@ -576,7 +576,7 @@ const TurboRacer = () => {
 
     if (s.score >= s.targetScore) {
       s.running = false;
-      horrorMusicRef.current.stop();
+      racingMusicRef.current.stop();
       addToWallet(s.coins * 10 + Math.floor(s.score / 10) + s.missionCoinBonus);
       addDiamonds(s.diamonds + s.missionDiamondBonus);
       setTotalWallet(getWallet());
@@ -667,7 +667,7 @@ const TurboRacer = () => {
     setCoins(0);
     setDiamonds_(0);
     setCoinCollections([]);
-    horrorMusicRef.current.start();
+    racingMusicRef.current.start();
     s.rafId = requestAnimationFrame(loop);
   }, [loop, sensitivity]);
 
@@ -741,7 +741,7 @@ const TurboRacer = () => {
             onClick={() => {
               playClickSound();
               stateRef.current.running = false;
-              horrorMusicRef.current.stop();
+              racingMusicRef.current.stop();
               setGameState("paused");
             }}
             className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-background/80 border-2 border-primary/50 flex items-center justify-center text-lg"
