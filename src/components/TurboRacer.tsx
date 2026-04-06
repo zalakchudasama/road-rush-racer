@@ -19,77 +19,107 @@ type GameState = "splash" | "start" | "mission" | "select" | "garage" | "playing
 
 interface Particle { x: number; y: number; size: number; speed: number }
 
-// Horror ambient music using Web Audio API
-const createHorrorMusic = (): { start: () => void; stop: () => void } => {
+// Fast racing music using Web Audio API
+const createRacingMusic = (): { start: () => void; stop: () => void } => {
   let ctx: AudioContext | null = null;
   let nodes: OscillatorNode[] = [];
   let gains: GainNode[] = [];
-  let lfo: OscillatorNode | null = null;
+  let intervalId: number | null = null;
 
   return {
     start: () => {
       try {
         ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
         const master = ctx.createGain();
-        master.gain.value = 0.12;
+        master.gain.value = 0.25;
         master.connect(ctx.destination);
 
-        // Deep drone
-        const drone = ctx.createOscillator();
-        const droneGain = ctx.createGain();
-        drone.type = "sawtooth";
-        drone.frequency.value = 55;
-        droneGain.gain.value = 0.3;
-        drone.connect(droneGain);
-        droneGain.connect(master);
-        drone.start();
-        nodes.push(drone);
-        gains.push(droneGain);
+        // Engine drone - powerful low rumble
+        const engine = ctx.createOscillator();
+        const engineGain = ctx.createGain();
+        engine.type = "sawtooth";
+        engine.frequency.value = 80;
+        engineGain.gain.value = 0.4;
+        engine.connect(engineGain);
+        engineGain.connect(master);
+        engine.start();
+        nodes.push(engine);
+        gains.push(engineGain);
 
-        // Eerie pad
-        const pad = ctx.createOscillator();
-        const padGain = ctx.createGain();
-        pad.type = "sine";
-        pad.frequency.value = 110;
-        padGain.gain.value = 0.15;
-        pad.connect(padGain);
-        padGain.connect(master);
-        pad.start();
-        nodes.push(pad);
-        gains.push(padGain);
+        // High-rev whine
+        const rev = ctx.createOscillator();
+        const revGain = ctx.createGain();
+        rev.type = "square";
+        rev.frequency.value = 220;
+        revGain.gain.value = 0.15;
+        rev.connect(revGain);
+        revGain.connect(master);
+        rev.start();
+        nodes.push(rev);
+        gains.push(revGain);
 
-        // Dissonant high tone
-        const high = ctx.createOscillator();
-        const highGain = ctx.createGain();
-        high.type = "sine";
-        high.frequency.value = 233;
-        highGain.gain.value = 0.08;
-        high.connect(highGain);
-        highGain.connect(master);
-        high.start();
-        nodes.push(high);
-        gains.push(highGain);
+        // Turbo whistle
+        const turbo = ctx.createOscillator();
+        const turboGain = ctx.createGain();
+        turbo.type = "sine";
+        turbo.frequency.value = 440;
+        turboGain.gain.value = 0.1;
+        turbo.connect(turboGain);
+        turboGain.connect(master);
+        turbo.start();
+        nodes.push(turbo);
+        gains.push(turboGain);
 
-        // LFO for creepy wobble
-        lfo = ctx.createOscillator();
+        // Fast LFO for engine throb
+        const lfo = ctx.createOscillator();
         const lfoGain = ctx.createGain();
         lfo.type = "sine";
-        lfo.frequency.value = 0.3;
-        lfoGain.gain.value = 8;
+        lfo.frequency.value = 6;
+        lfoGain.gain.value = 20;
         lfo.connect(lfoGain);
-        lfoGain.connect(drone.frequency);
-        lfoGain.connect(pad.frequency);
+        lfoGain.connect(engine.frequency);
+        lfoGain.connect(rev.frequency);
         lfo.start();
+        nodes.push(lfo);
+
+        // Rhythm pulse for intensity
+        const pulse = ctx.createOscillator();
+        const pulseGain = ctx.createGain();
+        pulse.type = "square";
+        pulse.frequency.value = 4;
+        pulseGain.gain.value = 0.08;
+        pulse.connect(pulseGain);
+        pulseGain.connect(master);
+        pulse.start();
+        nodes.push(pulse);
+        gains.push(pulseGain);
+
+        // Rev variations
+        let revUp = true;
+        intervalId = window.setInterval(() => {
+          if (!ctx) return;
+          const t = ctx.currentTime;
+          if (revUp) {
+            engine.frequency.linearRampToValueAtTime(120, t + 0.8);
+            rev.frequency.linearRampToValueAtTime(350, t + 0.8);
+            turbo.frequency.linearRampToValueAtTime(600, t + 0.8);
+          } else {
+            engine.frequency.linearRampToValueAtTime(80, t + 0.8);
+            rev.frequency.linearRampToValueAtTime(220, t + 0.8);
+            turbo.frequency.linearRampToValueAtTime(440, t + 0.8);
+          }
+          revUp = !revUp;
+        }, 1200);
       } catch {}
     },
     stop: () => {
       try {
+        if (intervalId) clearInterval(intervalId);
         nodes.forEach(n => { try { n.stop(); } catch {} });
-        if (lfo) try { lfo.stop(); } catch {}
         if (ctx) ctx.close();
         nodes = [];
         gains = [];
-        lfo = null;
+        intervalId = null;
         ctx = null;
       } catch {}
     }
@@ -123,7 +153,7 @@ const getCarData = (): CarData => {
 
 const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const horrorMusicRef = useRef(createHorrorMusic());
+  const racingMusicRef = useRef(createRacingMusic());
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
@@ -512,7 +542,7 @@ const TurboRacer = () => {
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
         ctx.fill();
         s.running = false;
-        horrorMusicRef.current.stop();
+        racingMusicRef.current.stop();
         addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
         setTotalDiamonds(getDiamonds());
@@ -546,7 +576,7 @@ const TurboRacer = () => {
 
     if (s.score >= s.targetScore) {
       s.running = false;
-      horrorMusicRef.current.stop();
+      racingMusicRef.current.stop();
       addToWallet(s.coins * 10 + Math.floor(s.score / 10) + s.missionCoinBonus);
       addDiamonds(s.diamonds + s.missionDiamondBonus);
       setTotalWallet(getWallet());
@@ -637,7 +667,7 @@ const TurboRacer = () => {
     setCoins(0);
     setDiamonds_(0);
     setCoinCollections([]);
-    horrorMusicRef.current.start();
+    racingMusicRef.current.start();
     s.rafId = requestAnimationFrame(loop);
   }, [loop, sensitivity]);
 
@@ -711,7 +741,7 @@ const TurboRacer = () => {
             onClick={() => {
               playClickSound();
               stateRef.current.running = false;
-              horrorMusicRef.current.stop();
+              racingMusicRef.current.stop();
               setGameState("paused");
             }}
             className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-background/80 border-2 border-primary/50 flex items-center justify-center text-lg"
@@ -800,11 +830,16 @@ const TurboRacer = () => {
               stateRef.current.missionCoinBonus = m.coinBonus;
               setGameState("select");
             }}
+            onBack={() => { playClickSound(); setGameState("start"); }}
           />
         )}
 
         {gameState === "select" && (
-          <ThemeSelect onSelect={(id) => startGame(id)} onGarage={() => setGameState("garage")} />
+          <ThemeSelect
+            onSelect={(id) => startGame(id)}
+            onGarage={() => setGameState("garage")}
+            onBack={() => { playClickSound(); setGameState("mission"); }}
+          />
         )}
 
         {gameState === "garage" && (
