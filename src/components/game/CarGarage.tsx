@@ -9,7 +9,7 @@ interface Props {
   onNext?: () => void;
 }
 
-const CarGarage = ({ onBack, onCarChanged }: Props) => {
+const CarGarage = ({ onBack, onCarChanged, onNext }: Props) => {
   const [wallet, setWalletState] = useState(getWallet);
   const [owned, setOwned] = useState(getOwnedCars);
   const [selected, setSelected] = useState(getSelectedCar);
