@@ -583,6 +583,7 @@ const TurboRacer = () => {
       setTotalDiamonds(getDiamonds());
       setLastScore(s.score);
       setLastCoins(s.coins);
+      addCompletedMission(s.missionId);
       setGameState("won");
       return;
     }
