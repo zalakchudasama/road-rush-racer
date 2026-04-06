@@ -13,9 +13,14 @@ const CarGarage = ({ onBack, onCarChanged }: Props) => {
   const [owned, setOwned] = useState(getOwnedCars);
   const [selected, setSelected] = useState(getSelectedCar);
   const [msg, setMsg] = useState("");
+  const [index, setIndex] = useState(0);
 
-  const handleBuy = (car: CarData) => {
-    if (owned.includes(car.id)) return;
+  const car = CARS[index];
+  const isOwned = owned.includes(car.id);
+  const isSelected = selected === car.id;
+
+  const handleBuy = () => {
+    if (isOwned) return;
     if (wallet < car.price) {
       setMsg(`Need ${car.price - wallet} more coins!`);
       setTimeout(() => setMsg(""), 2000);
@@ -30,11 +35,20 @@ const CarGarage = ({ onBack, onCarChanged }: Props) => {
     }
   };
 
-  const handleSelect = (car: CarData) => {
-    if (!owned.includes(car.id)) return;
+  const handleSelect = () => {
+    if (!isOwned) return;
     setSelectedCar(car.id);
     setSelected(car.id);
     onCarChanged();
+  };
+
+  const goLeft = () => {
+    playClickSound();
+    setIndex((prev) => (prev > 0 ? prev - 1 : CARS.length - 1));
+  };
+  const goRight = () => {
+    playClickSound();
+    setIndex((prev) => (prev < CARS.length - 1 ? prev + 1 : 0));
   };
 
   return (
@@ -44,20 +58,25 @@ const CarGarage = ({ onBack, onCarChanged }: Props) => {
       exit={{ opacity: 0 }}
       className="absolute inset-0 flex items-center justify-center z-50 p-4"
     >
-      <div
-        className="bg-background/95 border-2 border-primary rounded-2xl px-5 py-5 text-center w-full max-w-sm max-h-[90vh] overflow-y-auto"
-        style={{ boxShadow: "0 0 40px rgba(255,50,50,0.3)" }}
-      >
-        <div className="text-4xl mb-2">🏪</div>
+      <div className="flex flex-col items-center w-full max-w-sm">
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => { playClickSound(); onBack(); }}
+          className="self-start mb-4 w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold border-2 border-border text-foreground bg-card"
+        >
+          ←
+        </motion.button>
+
+        <div className="text-3xl mb-1">🏪</div>
         <h2 className="text-xl font-bold text-foreground mb-1 tracking-wider">CAR GARAGE</h2>
-        <div className="flex items-center justify-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-3">
           <div className="flex items-center gap-1">
-            <span className="text-lg">💰</span>
-            <span className="font-bold text-lg" style={{ color: "#ffd700" }}>{wallet.toLocaleString()}</span>
+            <span>💰</span>
+            <span className="font-bold text-sm" style={{ color: "#ffd700" }}>{wallet.toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-lg">💎</span>
-            <span className="font-bold text-lg" style={{ color: "#00d4ff" }}>{getDiamonds().toLocaleString()}</span>
+            <span>💎</span>
+            <span className="font-bold text-sm" style={{ color: "#00d4ff" }}>{getDiamonds().toLocaleString()}</span>
           </div>
         </div>
 
@@ -75,73 +94,72 @@ const CarGarage = ({ onBack, onCarChanged }: Props) => {
           )}
         </AnimatePresence>
 
-        <div className="space-y-2 mb-4">
-          {CARS.map((car) => {
-            const isOwned = owned.includes(car.id);
-            const isSelected = selected === car.id;
-            return (
-              <motion.div
-                key={car.id}
-                whileHover={{ scale: 1.02 }}
-                className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-colors ${
+        {/* Carousel */}
+        <div className="flex items-center gap-3 w-full">
+          <motion.button
+            whileTap={{ scale: 0.8 }}
+            onClick={goLeft}
+            className="w-10 h-10 rounded-full bg-card border-2 border-border text-foreground font-bold text-xl flex items-center justify-center shrink-0"
+          >
+            ‹
+          </motion.button>
+
+          <motion.div
+            key={car.id}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`flex-1 aspect-square rounded-2xl border-2 flex flex-col items-center justify-center p-4 ${
+              isSelected ? "border-primary bg-primary/10" : isOwned ? "border-accent/50 bg-card" : "border-border bg-card/50"
+            }`}
+          >
+            <div className="text-5xl mb-2">{car.emoji}</div>
+            <div className="text-foreground font-bold text-sm mb-1">{car.name}</div>
+            <div className="text-muted-foreground text-[10px] mb-1">{car.description}</div>
+            {car.speed > 0 && (
+              <div className="text-[10px] mb-1" style={{ color: "#44dd44" }}>
+                +{car.speed} speed bonus
+              </div>
+            )}
+            <div className="text-[10px] text-muted-foreground mb-3">
+              {index + 1} / {CARS.length}
+            </div>
+
+            {isOwned ? (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleSelect}
+                className={`px-5 py-2 rounded-lg font-bold text-xs ${
                   isSelected
-                    ? "border-primary bg-primary/10"
-                    : isOwned
-                    ? "border-accent/50 bg-card"
-                    : "border-border bg-card/50"
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border text-foreground hover:bg-accent/20"
                 }`}
               >
-                <div className="text-3xl">{car.emoji}</div>
-                <div className="flex-1 text-left">
-                  <div className="text-foreground font-bold text-sm">{car.name}</div>
-                  <div className="text-muted-foreground text-[10px]">{car.description}</div>
-                  {car.speed > 0 && (
-                    <div className="text-[10px] mt-0.5" style={{ color: "#44dd44" }}>
-                      +{car.speed} speed bonus
-                    </div>
-                  )}
-                </div>
-                <div className="text-right">
-                  {isOwned ? (
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleSelect(car)}
-                      className={`px-3 py-1.5 rounded-lg font-bold text-xs ${
-                        isSelected
-                          ? "bg-primary text-primary-foreground"
-                          : "border border-border text-foreground hover:bg-accent/20"
-                      }`}
-                    >
-                      {isSelected ? "✓ SELECTED" : "SELECT"}
-                    </motion.button>
-                  ) : (
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleBuy(car)}
-                      className="px-3 py-1.5 rounded-lg font-bold text-xs text-background"
-                      style={{
-                        background: wallet >= car.price
-                          ? "linear-gradient(135deg, #ffd700, #ff8c00)"
-                          : "#555",
-                      }}
-                    >
-                      💰 {car.price.toLocaleString()}
-                    </motion.button>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                {isSelected ? "✓ SELECTED" : "SELECT"}
+              </motion.button>
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleBuy}
+                className="px-5 py-2 rounded-lg font-bold text-xs text-background"
+                style={{
+                  background: wallet >= car.price
+                    ? "linear-gradient(135deg, #ffd700, #ff8c00)"
+                    : "#555",
+                }}
+              >
+                💰 {car.price.toLocaleString()}
+              </motion.button>
+            )}
+          </motion.div>
 
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onBack}
-          className="px-6 py-2 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-        >
-          ← BACK
-        </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.8 }}
+            onClick={goRight}
+            className="w-10 h-10 rounded-full bg-card border-2 border-border text-foreground font-bold text-xl flex items-center justify-center shrink-0"
+          >
+            ›
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   );
