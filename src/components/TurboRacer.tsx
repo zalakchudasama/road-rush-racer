@@ -934,19 +934,10 @@ const TurboRacer = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-4 py-2.5 rounded-xl font-bold text-sm"
-                  style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
-                  onClick={() => { playClickSound(); setGameState("garage"); }}
-                >
-                  🏪 GARAGE
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
                   onClick={() => { playClickSound(); setGameState("mission"); }}
                 >
-                  🗺️ CHANGE
+                  🗺️ MISSIONS
                 </motion.button>
               </div>
             </motion.div>
