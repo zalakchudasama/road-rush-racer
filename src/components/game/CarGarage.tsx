@@ -6,6 +6,7 @@ import { playClickSound } from "./sounds";
 interface Props {
   onBack: () => void;
   onCarChanged: () => void;
+  onNext?: () => void;
 }
 
 const CarGarage = ({ onBack, onCarChanged }: Props) => {
