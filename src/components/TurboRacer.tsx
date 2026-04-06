@@ -817,7 +817,14 @@ const TurboRacer = () => {
         )}
 
         {gameState === "start" && (
-          <StartScreen onStart={() => setGameState("mission")} />
+          <StartScreen onStart={() => setGameState("garage")} />
+        )}
+
+        {gameState === "garage" && (
+          <CarGarage
+            onBack={() => setGameState("start")}
+            onCarChanged={refreshCar}
+          />
         )}
 
         {gameState === "mission" && (
@@ -830,22 +837,14 @@ const TurboRacer = () => {
               stateRef.current.missionCoinBonus = m.coinBonus;
               setGameState("select");
             }}
-            onBack={() => { playClickSound(); setGameState("start"); }}
+            onBack={() => { playClickSound(); setGameState("garage"); }}
           />
         )}
 
         {gameState === "select" && (
           <ThemeSelect
             onSelect={(id) => startGame(id)}
-            onGarage={() => setGameState("garage")}
             onBack={() => { playClickSound(); setGameState("mission"); }}
-          />
-        )}
-
-        {gameState === "garage" && (
-          <CarGarage
-            onBack={() => setGameState("select")}
-            onCarChanged={refreshCar}
           />
         )}
 
