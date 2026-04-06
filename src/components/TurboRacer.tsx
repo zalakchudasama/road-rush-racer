@@ -583,6 +583,7 @@ const TurboRacer = () => {
       setTotalDiamonds(getDiamonds());
       setLastScore(s.score);
       setLastCoins(s.coins);
+      addCompletedMission(s.missionId);
       setGameState("won");
       return;
     }
@@ -817,7 +818,15 @@ const TurboRacer = () => {
         )}
 
         {gameState === "start" && (
-          <StartScreen onStart={() => setGameState("mission")} />
+          <StartScreen onStart={() => setGameState("garage")} />
+        )}
+
+        {gameState === "garage" && (
+          <CarGarage
+            onBack={() => setGameState("start")}
+            onCarChanged={refreshCar}
+            onNext={() => { playClickSound(); setGameState("mission"); }}
+          />
         )}
 
         {gameState === "mission" && (
@@ -830,22 +839,14 @@ const TurboRacer = () => {
               stateRef.current.missionCoinBonus = m.coinBonus;
               setGameState("select");
             }}
-            onBack={() => { playClickSound(); setGameState("start"); }}
+            onBack={() => { playClickSound(); setGameState("garage"); }}
           />
         )}
 
         {gameState === "select" && (
           <ThemeSelect
             onSelect={(id) => startGame(id)}
-            onGarage={() => setGameState("garage")}
             onBack={() => { playClickSound(); setGameState("mission"); }}
-          />
-        )}
-
-        {gameState === "garage" && (
-          <CarGarage
-            onBack={() => setGameState("select")}
-            onCarChanged={refreshCar}
           />
         )}
 
@@ -935,19 +936,10 @@ const TurboRacer = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-4 py-2.5 rounded-xl font-bold text-sm"
-                  style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
-                  onClick={() => { playClickSound(); setGameState("garage"); }}
-                >
-                  🏪 GARAGE
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
                   onClick={() => { playClickSound(); setGameState("mission"); }}
                 >
-                  🗺️ CHANGE
+                  🗺️ MISSIONS
                 </motion.button>
               </div>
             </motion.div>
@@ -981,25 +973,14 @@ const TurboRacer = () => {
               <p className="text-foreground mb-1">Coins earned: <span className="font-bold" style={{ color: "#ffd700" }}>{(coins * 10 + Math.floor(score / 10)).toLocaleString()}</span> 💰</p>
               <p className="text-muted-foreground text-xs mb-3">Wallet: 💰 {totalWallet.toLocaleString()}</p>
               <div className="flex flex-col gap-2 mt-2">
-                <div className="flex gap-2 justify-center">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2.5 rounded-xl font-bold text-sm"
-                    style={{ background: "linear-gradient(135deg, #ffd700, #ff8c00)" }}
-                    onClick={() => { playClickSound(); setGameState("garage"); }}
-                  >
-                    🏪 GARAGE
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-                    onClick={() => { playClickSound(); setGameState("mission"); }}
-                  >
-                    🗺️ CHANGE
-                  </motion.button>
-                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
+                  onClick={() => { playClickSound(); setGameState("mission"); }}
+                >
+                  🗺️ MISSIONS
+                </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
