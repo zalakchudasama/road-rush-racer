@@ -9,7 +9,7 @@ import CarGarage from "./game/CarGarage";
 import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
 import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission } from "./game/cars";
-import { playClickSound, playCoinSound } from "./game/sounds";
+import { playClickSound, playCoinSound, playGhostSound } from "./game/sounds";
 
 const GAME_WIDTH = 420;
 const CAR_W = 50;
@@ -127,6 +127,8 @@ const createRacingMusic = (): { start: () => void; stop: () => void } => {
 };
 interface GameCoin { x: number; y: number; value: number; color: string; label: string }
 interface GameDiamond { x: number; y: number }
+interface GameGhost { x: number; y: number; vy: number; vx: number; phase: number; screamed: boolean }
+interface GameEnemy { x: number; y: number; vx?: number; flipped?: boolean; flipT?: number; flipVX?: number; flipVY?: number; flipRot?: number }
 
 const COIN_TYPES = [
   { value: 50, color: "#cd7f32", label: "50", weight: 5 },
@@ -179,9 +181,11 @@ const TurboRacer = () => {
     speed: 5,
     baseSpeed: 5,
     keys: {} as Record<string, boolean>,
-    enemies: [] as { x: number; y: number }[],
+    enemies: [] as GameEnemy[],
     coins_: [] as GameCoin[],
     diamonds_: [] as GameDiamond[],
+    ghosts: [] as GameGhost[],
+    nextGhostAt: 0,
     particles: [] as Particle[],
     lineOffset: 0,
     lampOffset: 0,
