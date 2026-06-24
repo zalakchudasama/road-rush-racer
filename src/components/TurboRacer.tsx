@@ -744,6 +744,8 @@ const TurboRacer = () => {
     s.coins_ = [];
     s.diamonds_ = [];
     s.particles = [];
+    s.ghosts = [];
+    s.nextGhostAt = performance.now() + 4000 + Math.random() * 3000;
 
      const enemyCount = s.missionId === "m1" ? 15 : s.missionId === "m4" ? 8 : 3;
      for (let i = 0; i < enemyCount; i++) {
