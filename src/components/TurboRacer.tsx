@@ -537,6 +537,28 @@ const TurboRacer = () => {
       const enemyColor = missionColors[ei % missionColors.length];
       let isFacingDown = false;
 
+      // Flipped enemies (knocked by boss car) fly away with their own physics
+      if (e.flipped) {
+        e.x += e.flipVX || 0;
+        e.y += e.flipVY || 0;
+        e.flipT = (e.flipT || 0) + 1;
+        e.flipRot = (e.flipRot || 0) + 0.18;
+        // respawn after flying off-screen
+        if (e.flipT > 90 || e.x < -120 || e.x > GAME_WIDTH + 120 || e.y < -200 || e.y > H + 200) {
+          e.flipped = false;
+          e.flipT = 0;
+          e.x = 20 + Math.random() * (GAME_WIDTH - 90);
+          e.y = -CAR_H - 100 - Math.random() * 400;
+          e.vx = undefined;
+        }
+        ctx.save();
+        ctx.translate(e.x + CAR_W / 2, e.y + CAR_H / 2);
+        ctx.rotate(Math.PI + (e.flipRot || 0));
+        drawCar3D(ctx, -CAR_W / 2, -CAR_H / 2, enemyColor, false, isFacingDown);
+        ctx.restore();
+        continue;
+      }
+
       if (s.missionId === "m2") {
         // Mission 2: cars move top to bottom (coming towards player)
         e.y += s.speed * 0.8;
@@ -580,6 +602,21 @@ const TurboRacer = () => {
       }
       drawCar3D(ctx, e.x, e.y, enemyColor, false, isFacingDown);
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, e.x, e.y, CAR_W, CAR_H)) {
+        // Boss-tier car (last in CARS) flips enemies on contact instead of crashing
+        if (s.car.id === CARS[CARS.length - 1].id) {
+          e.flipped = true;
+          e.flipT = 0;
+          e.flipRot = 0;
+          const dx = (e.x + CAR_W / 2) - (s.x + CAR_W / 2);
+          e.flipVX = (dx >= 0 ? 1 : -1) * (5 + Math.random() * 3);
+          e.flipVY = -7 - Math.random() * 3;
+          // small impact flash
+          ctx.fillStyle = "rgba(255,220,80,0.7)";
+          ctx.beginPath();
+          ctx.ellipse(e.x + CAR_W / 2, e.y + CAR_H / 2, 28, 28, 0, 0, Math.PI * 2);
+          ctx.fill();
+          continue;
+        }
         ctx.fillStyle = "rgba(255,100,0,0.6)";
         ctx.beginPath();
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
@@ -597,6 +634,50 @@ const TurboRacer = () => {
         setGameState("lost");
         return;
       }
+    }
+
+    // Ghosts: spawn periodically from below the road and rise up toward the player
+    const now = performance.now();
+    if (now >= s.nextGhostAt) {
+      s.ghosts.push({
+        x: 40 + Math.random() * (GAME_WIDTH - 80),
+        y: H + 60,
+        vy: -2.2 - Math.random() * 1.4,
+        vx: (Math.random() - 0.5) * 1.2,
+        phase: Math.random() * Math.PI * 2,
+        screamed: false,
+      });
+      s.nextGhostAt = now + 6000 + Math.random() * 5000;
+    }
+    for (let gi = s.ghosts.length - 1; gi >= 0; gi--) {
+      const g = s.ghosts[gi];
+      g.y += g.vy;
+      g.x += g.vx;
+      g.phase += 0.2;
+      // play horror sound the first time it becomes visible on screen
+      if (!g.screamed && g.y < H - 20) {
+        playGhostSound();
+        g.screamed = true;
+      }
+      // collide with player → instant game over
+      if (boxCollide(s.x, s.y, CAR_W, CAR_H, g.x - 22, g.y - 22, 44, 50)) {
+        ctx.fillStyle = "rgba(0,200,255,0.5)";
+        ctx.fillRect(0, 0, W, H);
+        s.running = false;
+        racingMusicRef.current.stop();
+        addDiamonds(s.diamonds);
+        setTotalWallet(getWallet());
+        setTotalDiamonds(getDiamonds());
+        setLastScore(s.score);
+        setLastCoins(s.coins);
+        setScore(s.score);
+        setCoins(s.coins);
+        setDiamonds_(s.diamonds);
+        setGameState("lost");
+        return;
+      }
+      drawGhost(ctx, g);
+      if (g.y < -80) s.ghosts.splice(gi, 1);
     }
 
     drawCar3D(ctx, s.x, s.y, "#ff0000", true);
