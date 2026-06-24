@@ -313,6 +313,45 @@ const TurboRacer = () => {
     ctx.restore();
   };
 
+  const drawGhost = (ctx: CanvasRenderingContext2D, g: GameGhost) => {
+    ctx.save();
+    const cx = g.x;
+    const cy = g.y;
+    // outer aura
+    const aura = ctx.createRadialGradient(cx, cy, 5, cx, cy, 50);
+    aura.addColorStop(0, "rgba(180,255,255,0.45)");
+    aura.addColorStop(1, "rgba(180,255,255,0)");
+    ctx.fillStyle = aura;
+    ctx.beginPath(); ctx.arc(cx, cy, 50, 0, Math.PI * 2); ctx.fill();
+
+    // body
+    ctx.fillStyle = "rgba(240,250,255,0.92)";
+    ctx.beginPath();
+    ctx.arc(cx, cy - 6, 22, Math.PI, 0); // head dome
+    // wavy bottom
+    const baseY = cy + 22;
+    ctx.lineTo(cx + 22, baseY);
+    for (let i = 0; i < 5; i++) {
+      const wx = cx + 22 - (i + 1) * (44 / 5);
+      const wy = baseY + (i % 2 === 0 ? -6 : 6) + Math.sin(g.phase + i) * 2;
+      ctx.lineTo(wx, wy);
+    }
+    ctx.lineTo(cx - 22, cy - 6);
+    ctx.closePath();
+    ctx.shadowColor = "rgba(120,220,255,0.9)";
+    ctx.shadowBlur = 14;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // hollow black eyes
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.ellipse(cx - 8, cy - 8, 4, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 8, cy - 8, 4, 6, 0, 0, Math.PI * 2); ctx.fill();
+    // gaping mouth
+    ctx.beginPath(); ctx.ellipse(cx, cy + 6, 4, 7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  };
+
   const drawParticles = (ctx: CanvasRenderingContext2D, s: typeof stateRef.current) => {
     const t = s.theme;
     const p = t.particles;
