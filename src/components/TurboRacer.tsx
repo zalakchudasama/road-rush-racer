@@ -830,6 +830,13 @@ const TurboRacer = () => {
     s.particles = [];
     s.ghosts = [];
     s.nextGhostAt = performance.now() + 4000 + Math.random() * 3000;
+    s.shieldUntil = 0;
+    s.magnetUntil = 0;
+    s.nitroUntil = 0;
+    s.slowUntil = 0;
+    s.ghostBustUntil = 0;
+    setAbilityCharges(getAbilityCharges(s.car.id));
+    setAbilityActive(false);
 
      const enemyCount = s.missionId === "m1" ? 15 : s.missionId === "m4" ? 8 : 3;
      for (let i = 0; i < enemyCount; i++) {
