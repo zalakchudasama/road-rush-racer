@@ -31,17 +31,17 @@ const ThemeSelect = ({ onSelect, onBack }: Props) => {
       exit={{ opacity: 0 }}
       className="absolute inset-0 flex items-center justify-center z-50"
     >
-      <div className="flex flex-col items-center w-full max-w-sm px-4">
-        {onBack && (
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => { playClickSound(); onBack(); }}
-            className="self-start mb-4 w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold border-2 border-border text-foreground bg-card"
-          >
-            ←
-          </motion.button>
-        )}
+      {onBack && (
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => { playClickSound(); onBack(); }}
+          className="fixed top-4 left-4 z-50 w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold border-2 border-border text-foreground bg-card"
+        >
+          ←
+        </motion.button>
+      )}
 
+      <div className="flex flex-col items-center w-full max-w-sm px-4">
         <div className="text-3xl mb-2">🛣️</div>
         <h1 className="text-xl font-bold text-foreground mb-4 tracking-wider">SELECT ROAD</h1>
 
