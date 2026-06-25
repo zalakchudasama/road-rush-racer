@@ -153,6 +153,40 @@ const getCarData = (): CarData => {
   return CARS.find(c => c.id === id) || CARS[0];
 };
 
+interface AbilityButtonProps {
+  car: CarData;
+  charges: number;
+  active: boolean;
+  onActivate: () => void;
+}
+
+const AbilityButton = ({ car, charges, active, onActivate }: AbilityButtonProps) => {
+  const ab = ABILITIES[car.ability];
+  const disabled = charges <= 0 || active;
+  return (
+    <motion.button
+      whileTap={{ scale: 0.9 }}
+      onClick={onActivate}
+      className="fixed right-4 z-50 w-14 h-14 rounded-full flex flex-col items-center justify-center border-2 font-bold"
+      style={{
+        top: 60,
+        borderColor: ab.color,
+        background: disabled
+          ? "rgba(20,20,20,0.7)"
+          : `linear-gradient(135deg, ${ab.color}cc, ${ab.color}66)`,
+        opacity: disabled ? 0.55 : 1,
+        boxShadow: active ? `0 0 18px ${ab.color}` : "none",
+      }}
+      title={`${ab.name} — ${ab.description}`}
+    >
+      <span className="text-lg leading-none">{ab.emoji}</span>
+      <span className="text-[10px] font-mono mt-0.5 text-white">
+        {active ? "ON" : `×${charges}`}
+      </span>
+    </motion.button>
+  );
+};
+
 const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const racingMusicRef = useRef(createRacingMusic());
