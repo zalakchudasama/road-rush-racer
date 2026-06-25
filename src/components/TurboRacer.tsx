@@ -8,7 +8,7 @@ import SettingsButton from "./game/SettingsButton";
 import CarGarage from "./game/CarGarage";
 import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
-import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission } from "./game/cars";
+import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission, ABILITIES, getAbilityCharges, useAbilityCharge } from "./game/cars";
 import { playClickSound, playCoinSound, playGhostSound } from "./game/sounds";
 
 const GAME_WIDTH = 420;
@@ -197,7 +197,15 @@ const TurboRacer = () => {
     missionId: "m1",
     missionDiamondBonus: 20,
     missionCoinBonus: 0,
+    // ability timers (absolute timestamps in ms; 0 = inactive)
+    shieldUntil: 0,
+    magnetUntil: 0,
+    nitroUntil: 0,
+    slowUntil: 0,
+    ghostBustUntil: 0,
   });
+  const [abilityCharges, setAbilityCharges] = useState(0);
+  const [abilityActive, setAbilityActive] = useState(false);
 
   const drawCar3D = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, isPlayer: boolean, facingDown?: boolean) => {
     ctx.save();
@@ -532,6 +540,12 @@ const TurboRacer = () => {
     };
     const missionColors = MISSION_CAR_COLORS[s.missionId] || MISSION_CAR_COLORS.m3;
 
+    const nowAbility = performance.now();
+    const slowMul = nowAbility < s.slowUntil ? 0.35 : 1;
+    const shieldOn = nowAbility < s.shieldUntil;
+    const ghostBustOn = nowAbility < s.ghostBustUntil;
+    const magnetOn = nowAbility < s.magnetUntil;
+
     for (let ei = 0; ei < s.enemies.length; ei++) {
       const e = s.enemies[ei];
       const enemyColor = missionColors[ei % missionColors.length];
@@ -561,7 +575,7 @@ const TurboRacer = () => {
 
       if (s.missionId === "m2") {
         // Mission 2: cars move top to bottom (coming towards player)
-        e.y += s.speed * 0.8;
+        e.y += s.speed * 0.8 * slowMul;
         isFacingDown = true;
         if (e.y > H + CAR_H + 100) {
           e.y = -CAR_H - 100 - Math.random() * 300;
@@ -571,30 +585,30 @@ const TurboRacer = () => {
         // Mission 4: cars come from all directions
         const dir = ei % 4;
         if (dir === 0) { // top to bottom
-          e.y += s.speed * 0.9;
+          e.y += s.speed * 0.9 * slowMul;
           isFacingDown = true;
           if (e.y > H + CAR_H + 100) { e.y = -CAR_H - 200 - Math.random() * 300; e.x = 20 + Math.random() * (GAME_WIDTH - 90); }
         } else if (dir === 1) { // bottom to top
-          e.y -= s.speed * 0.7;
+          e.y -= s.speed * 0.7 * slowMul;
           if (e.y < -CAR_H - 100) { e.y = H + 100 + Math.random() * 300; e.x = 20 + Math.random() * (GAME_WIDTH - 90); }
         } else if (dir === 2) { // left to right
           (e as any).vx = (e as any).vx || s.speed * 0.6;
-          e.x += (e as any).vx;
-          e.y += s.speed * 0.3;
+          e.x += (e as any).vx * slowMul;
+          e.y += s.speed * 0.3 * slowMul;
           isFacingDown = true;
           if (e.x > GAME_WIDTH + 50) { e.x = -CAR_W - 50; e.y = Math.random() * H; }
           if (e.y > H + 100) { e.y = -CAR_H - 100; }
         } else { // right to left
           (e as any).vx = (e as any).vx || -(s.speed * 0.6);
-          e.x += (e as any).vx;
-          e.y += s.speed * 0.3;
+          e.x += (e as any).vx * slowMul;
+          e.y += s.speed * 0.3 * slowMul;
           isFacingDown = true;
           if (e.x < -CAR_W - 50) { e.x = GAME_WIDTH + 50; e.y = Math.random() * H; }
           if (e.y > H + 100) { e.y = -CAR_H - 100; }
         }
       } else if (s.missionId !== "m1") {
         // Other missions: cars move bottom to top
-        e.y -= s.speed * 0.6;
+        e.y -= s.speed * 0.6 * slowMul;
         if (e.y < -CAR_H - 100) {
           e.y = H + 100 + Math.random() * 300;
           e.x = 20 + Math.random() * (GAME_WIDTH - 90);
