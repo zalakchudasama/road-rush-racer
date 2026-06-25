@@ -8,7 +8,7 @@ import SettingsButton from "./game/SettingsButton";
 import CarGarage from "./game/CarGarage";
 import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
-import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission } from "./game/cars";
+import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission, ABILITIES, getAbilityCharges, useAbilityCharge } from "./game/cars";
 import { playClickSound, playCoinSound, playGhostSound } from "./game/sounds";
 
 const GAME_WIDTH = 420;
@@ -153,6 +153,40 @@ const getCarData = (): CarData => {
   return CARS.find(c => c.id === id) || CARS[0];
 };
 
+interface AbilityButtonProps {
+  car: CarData;
+  charges: number;
+  active: boolean;
+  onActivate: () => void;
+}
+
+const AbilityButton = ({ car, charges, active, onActivate }: AbilityButtonProps) => {
+  const ab = ABILITIES[car.ability];
+  const disabled = charges <= 0 || active;
+  return (
+    <motion.button
+      whileTap={{ scale: 0.9 }}
+      onClick={onActivate}
+      className="fixed right-4 z-50 w-14 h-14 rounded-full flex flex-col items-center justify-center border-2 font-bold"
+      style={{
+        top: 60,
+        borderColor: ab.color,
+        background: disabled
+          ? "rgba(20,20,20,0.7)"
+          : `linear-gradient(135deg, ${ab.color}cc, ${ab.color}66)`,
+        opacity: disabled ? 0.55 : 1,
+        boxShadow: active ? `0 0 18px ${ab.color}` : "none",
+      }}
+      title={`${ab.name} — ${ab.description}`}
+    >
+      <span className="text-lg leading-none">{ab.emoji}</span>
+      <span className="text-[10px] font-mono mt-0.5 text-white">
+        {active ? "ON" : `×${charges}`}
+      </span>
+    </motion.button>
+  );
+};
+
 const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const racingMusicRef = useRef(createRacingMusic());
@@ -197,7 +231,15 @@ const TurboRacer = () => {
     missionId: "m1",
     missionDiamondBonus: 20,
     missionCoinBonus: 0,
+    // ability timers (absolute timestamps in ms; 0 = inactive)
+    shieldUntil: 0,
+    magnetUntil: 0,
+    nitroUntil: 0,
+    slowUntil: 0,
+    ghostBustUntil: 0,
   });
+  const [abilityCharges, setAbilityCharges] = useState(0);
+  const [abilityActive, setAbilityActive] = useState(false);
 
   const drawCar3D = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, isPlayer: boolean, facingDown?: boolean) => {
     ctx.save();
@@ -532,6 +574,12 @@ const TurboRacer = () => {
     };
     const missionColors = MISSION_CAR_COLORS[s.missionId] || MISSION_CAR_COLORS.m3;
 
+    const nowAbility = performance.now();
+    const slowMul = nowAbility < s.slowUntil ? 0.35 : 1;
+    const shieldOn = nowAbility < s.shieldUntil;
+    const ghostBustOn = nowAbility < s.ghostBustUntil;
+    const magnetOn = nowAbility < s.magnetUntil;
+
     for (let ei = 0; ei < s.enemies.length; ei++) {
       const e = s.enemies[ei];
       const enemyColor = missionColors[ei % missionColors.length];
@@ -561,7 +609,7 @@ const TurboRacer = () => {
 
       if (s.missionId === "m2") {
         // Mission 2: cars move top to bottom (coming towards player)
-        e.y += s.speed * 0.8;
+        e.y += s.speed * 0.8 * slowMul;
         isFacingDown = true;
         if (e.y > H + CAR_H + 100) {
           e.y = -CAR_H - 100 - Math.random() * 300;
@@ -571,30 +619,30 @@ const TurboRacer = () => {
         // Mission 4: cars come from all directions
         const dir = ei % 4;
         if (dir === 0) { // top to bottom
-          e.y += s.speed * 0.9;
+          e.y += s.speed * 0.9 * slowMul;
           isFacingDown = true;
           if (e.y > H + CAR_H + 100) { e.y = -CAR_H - 200 - Math.random() * 300; e.x = 20 + Math.random() * (GAME_WIDTH - 90); }
         } else if (dir === 1) { // bottom to top
-          e.y -= s.speed * 0.7;
+          e.y -= s.speed * 0.7 * slowMul;
           if (e.y < -CAR_H - 100) { e.y = H + 100 + Math.random() * 300; e.x = 20 + Math.random() * (GAME_WIDTH - 90); }
         } else if (dir === 2) { // left to right
           (e as any).vx = (e as any).vx || s.speed * 0.6;
-          e.x += (e as any).vx;
-          e.y += s.speed * 0.3;
+          e.x += (e as any).vx * slowMul;
+          e.y += s.speed * 0.3 * slowMul;
           isFacingDown = true;
           if (e.x > GAME_WIDTH + 50) { e.x = -CAR_W - 50; e.y = Math.random() * H; }
           if (e.y > H + 100) { e.y = -CAR_H - 100; }
         } else { // right to left
           (e as any).vx = (e as any).vx || -(s.speed * 0.6);
-          e.x += (e as any).vx;
-          e.y += s.speed * 0.3;
+          e.x += (e as any).vx * slowMul;
+          e.y += s.speed * 0.3 * slowMul;
           isFacingDown = true;
           if (e.x < -CAR_W - 50) { e.x = GAME_WIDTH + 50; e.y = Math.random() * H; }
           if (e.y > H + 100) { e.y = -CAR_H - 100; }
         }
       } else if (s.missionId !== "m1") {
         // Other missions: cars move bottom to top
-        e.y -= s.speed * 0.6;
+        e.y -= s.speed * 0.6 * slowMul;
         if (e.y < -CAR_H - 100) {
           e.y = H + 100 + Math.random() * 300;
           e.x = 20 + Math.random() * (GAME_WIDTH - 90);
@@ -614,6 +662,20 @@ const TurboRacer = () => {
           ctx.fillStyle = "rgba(255,220,80,0.7)";
           ctx.beginPath();
           ctx.ellipse(e.x + CAR_W / 2, e.y + CAR_H / 2, 28, 28, 0, 0, Math.PI * 2);
+          ctx.fill();
+          continue;
+        }
+        // Shield ability: bounce enemy away, no crash
+        if (shieldOn) {
+          e.flipped = true;
+          e.flipT = 0;
+          e.flipRot = 0;
+          const dx = (e.x + CAR_W / 2) - (s.x + CAR_W / 2);
+          e.flipVX = (dx >= 0 ? 1 : -1) * (5 + Math.random() * 3);
+          e.flipVY = -6 - Math.random() * 3;
+          ctx.fillStyle = "rgba(0,212,255,0.55)";
+          ctx.beginPath();
+          ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
           ctx.fill();
           continue;
         }
@@ -638,6 +700,10 @@ const TurboRacer = () => {
 
     // Ghosts: spawn periodically from below the road and rise up toward the player
     const now = performance.now();
+    // Ghost-buster: instantly clear all on activation window
+    if (ghostBustOn && s.ghosts.length > 0) {
+      s.ghosts.length = 0;
+    }
     if (now >= s.nextGhostAt) {
       s.ghosts.push({
         x: 40 + Math.random() * (GAME_WIDTH - 80),
@@ -661,6 +727,15 @@ const TurboRacer = () => {
       }
       // collide with player → instant game over
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, g.x - 22, g.y - 22, 44, 50)) {
+        // Shield / Ghost-buster makes the ghost vanish instead of crashing
+        if (shieldOn || ghostBustOn) {
+          ctx.fillStyle = "rgba(180,255,255,0.55)";
+          ctx.beginPath();
+          ctx.ellipse(g.x, g.y, 36, 36, 0, 0, Math.PI * 2);
+          ctx.fill();
+          s.ghosts.splice(gi, 1);
+          continue;
+        }
         ctx.fillStyle = "rgba(0,200,255,0.5)";
         ctx.fillRect(0, 0, W, H);
         s.running = false;
@@ -678,8 +753,49 @@ const TurboRacer = () => {
       }
       drawGhost(ctx, g);
       if (g.y < -80) s.ghosts.splice(gi, 1);
+      // Ability protections from ghost collisions handled in collide block above
     }
 
+    // Magnet: pull coins toward the player
+    if (magnetOn) {
+      for (const c of s.coins_) {
+        const cx = c.x + 15, cy = c.y + 15;
+        const px = s.x + CAR_W / 2, py = s.y + CAR_H / 2;
+        const dx = px - cx, dy = py - cy;
+        const d = Math.hypot(dx, dy);
+        if (d < 220 && d > 1) {
+          const pull = 4.5;
+          c.x += (dx / d) * pull;
+          c.y += (dy / d) * pull;
+        }
+      }
+    }
+
+    // Player aura for active abilities
+    if (shieldOn || magnetOn || nowAbility < s.nitroUntil || nowAbility < s.slowUntil || ghostBustOn) {
+      const auraColor = shieldOn
+        ? "rgba(0,212,255,0.55)"
+        : nowAbility < s.nitroUntil
+          ? "rgba(255,120,0,0.55)"
+          : magnetOn
+            ? "rgba(255,215,0,0.45)"
+            : nowAbility < s.slowUntil
+              ? "rgba(170,102,255,0.45)"
+              : "rgba(255,255,255,0.45)";
+      ctx.save();
+      const pulse = 1 + Math.sin(nowAbility / 80) * 0.08;
+      const grad = ctx.createRadialGradient(
+        s.x + CAR_W / 2, s.y + CAR_H / 2, 10,
+        s.x + CAR_W / 2, s.y + CAR_H / 2, 60 * pulse,
+      );
+      grad.addColorStop(0, auraColor);
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(s.x + CAR_W / 2, s.y + CAR_H / 2, 60 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
     drawCar3D(ctx, s.x, s.y, "#ff0000", true);
 
     const moveSpeed = s.speed;
@@ -689,8 +805,10 @@ const TurboRacer = () => {
     if (s.keys.ArrowDown && s.y < H - CAR_H) s.y += moveSpeed;
 
     const isBoost = boostActiveRef.current;
-    s.score += isBoost ? 3 : 1;
-    s.speed = (s.baseSpeed + s.car.speed + Math.floor(s.score / 2000)) * (isBoost ? 2.5 : 1);
+    const nitroOn = performance.now() < s.nitroUntil;
+    const mult = nitroOn ? 3.2 : isBoost ? 2.5 : 1;
+    s.score += nitroOn ? 4 : isBoost ? 3 : 1;
+    s.speed = (s.baseSpeed + s.car.speed + Math.floor(s.score / 2000)) * mult;
 
     if (s.score % 10 === 0) {
       setScore(s.score);
@@ -746,6 +864,13 @@ const TurboRacer = () => {
     s.particles = [];
     s.ghosts = [];
     s.nextGhostAt = performance.now() + 4000 + Math.random() * 3000;
+    s.shieldUntil = 0;
+    s.magnetUntil = 0;
+    s.nitroUntil = 0;
+    s.slowUntil = 0;
+    s.ghostBustUntil = 0;
+    setAbilityCharges(getAbilityCharges(s.car.id));
+    setAbilityActive(false);
 
      const enemyCount = s.missionId === "m1" ? 15 : s.missionId === "m4" ? 8 : 3;
      for (let i = 0; i < enemyCount; i++) {
@@ -877,6 +1002,28 @@ const TurboRacer = () => {
           </motion.button>
 
           <SettingsButton sensitivity={sensitivity} onSensitivityChange={setSensitivity} />
+
+          <AbilityButton
+            car={currentCar}
+            charges={abilityCharges}
+            active={abilityActive}
+            onActivate={() => {
+              const ab = ABILITIES[currentCar.ability];
+              if (abilityCharges <= 0 || abilityActive) return;
+              if (!useAbilityCharge(currentCar.id)) return;
+              playClickSound();
+              const s = stateRef.current;
+              const until = performance.now() + ab.durationMs;
+              if (ab.id === "shield") s.shieldUntil = until;
+              else if (ab.id === "magnet") s.magnetUntil = until;
+              else if (ab.id === "nitro") s.nitroUntil = until;
+              else if (ab.id === "slow") s.slowUntil = until;
+              else if (ab.id === "ghostbust") { s.ghostBustUntil = until; s.ghosts.length = 0; }
+              setAbilityCharges(getAbilityCharges(currentCar.id));
+              setAbilityActive(true);
+              window.setTimeout(() => setAbilityActive(false), ab.durationMs);
+            }}
+          />
 
           {/* Coin collection popups */}
           <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-1">
