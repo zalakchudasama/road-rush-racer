@@ -737,6 +737,31 @@ const TurboRacer = () => {
       }
     }
 
+    // Player aura for active abilities
+    if (shieldOn || magnetOn || nowAbility < s.nitroUntil || nowAbility < s.slowUntil || ghostBustOn) {
+      const auraColor = shieldOn
+        ? "rgba(0,212,255,0.55)"
+        : nowAbility < s.nitroUntil
+          ? "rgba(255,120,0,0.55)"
+          : magnetOn
+            ? "rgba(255,215,0,0.45)"
+            : nowAbility < s.slowUntil
+              ? "rgba(170,102,255,0.45)"
+              : "rgba(255,255,255,0.45)";
+      ctx.save();
+      const pulse = 1 + Math.sin(nowAbility / 80) * 0.08;
+      const grad = ctx.createRadialGradient(
+        s.x + CAR_W / 2, s.y + CAR_H / 2, 10,
+        s.x + CAR_W / 2, s.y + CAR_H / 2, 60 * pulse,
+      );
+      grad.addColorStop(0, auraColor);
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(s.x + CAR_W / 2, s.y + CAR_H / 2, 60 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
     drawCar3D(ctx, s.x, s.y, "#ff0000", true);
 
     const moveSpeed = s.speed;
@@ -746,8 +771,10 @@ const TurboRacer = () => {
     if (s.keys.ArrowDown && s.y < H - CAR_H) s.y += moveSpeed;
 
     const isBoost = boostActiveRef.current;
-    s.score += isBoost ? 3 : 1;
-    s.speed = (s.baseSpeed + s.car.speed + Math.floor(s.score / 2000)) * (isBoost ? 2.5 : 1);
+    const nitroOn = performance.now() < s.nitroUntil;
+    const mult = nitroOn ? 3.2 : isBoost ? 2.5 : 1;
+    s.score += nitroOn ? 4 : isBoost ? 3 : 1;
+    s.speed = (s.baseSpeed + s.car.speed + Math.floor(s.score / 2000)) * mult;
 
     if (s.score % 10 === 0) {
       setScore(s.score);
