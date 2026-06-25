@@ -631,6 +631,20 @@ const TurboRacer = () => {
           ctx.fill();
           continue;
         }
+        // Shield ability: bounce enemy away, no crash
+        if (shieldOn) {
+          e.flipped = true;
+          e.flipT = 0;
+          e.flipRot = 0;
+          const dx = (e.x + CAR_W / 2) - (s.x + CAR_W / 2);
+          e.flipVX = (dx >= 0 ? 1 : -1) * (5 + Math.random() * 3);
+          e.flipVY = -6 - Math.random() * 3;
+          ctx.fillStyle = "rgba(0,212,255,0.55)";
+          ctx.beginPath();
+          ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
+          ctx.fill();
+          continue;
+        }
         ctx.fillStyle = "rgba(255,100,0,0.6)";
         ctx.beginPath();
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
@@ -652,6 +666,10 @@ const TurboRacer = () => {
 
     // Ghosts: spawn periodically from below the road and rise up toward the player
     const now = performance.now();
+    // Ghost-buster: instantly clear all on activation window
+    if (ghostBustOn && s.ghosts.length > 0) {
+      s.ghosts.length = 0;
+    }
     if (now >= s.nextGhostAt) {
       s.ghosts.push({
         x: 40 + Math.random() * (GAME_WIDTH - 80),
@@ -692,6 +710,22 @@ const TurboRacer = () => {
       }
       drawGhost(ctx, g);
       if (g.y < -80) s.ghosts.splice(gi, 1);
+      // Ability protections from ghost collisions handled in collide block above
+    }
+
+    // Magnet: pull coins toward the player
+    if (magnetOn) {
+      for (const c of s.coins_) {
+        const cx = c.x + 15, cy = c.y + 15;
+        const px = s.x + CAR_W / 2, py = s.y + CAR_H / 2;
+        const dx = px - cx, dy = py - cy;
+        const d = Math.hypot(dx, dy);
+        if (d < 220 && d > 1) {
+          const pull = 4.5;
+          c.x += (dx / d) * pull;
+          c.y += (dy / d) * pull;
+        }
+      }
     }
 
     drawCar3D(ctx, s.x, s.y, "#ff0000", true);
