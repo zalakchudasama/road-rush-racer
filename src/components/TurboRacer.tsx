@@ -969,6 +969,28 @@ const TurboRacer = () => {
 
           <SettingsButton sensitivity={sensitivity} onSensitivityChange={setSensitivity} />
 
+          <AbilityButton
+            car={currentCar}
+            charges={abilityCharges}
+            active={abilityActive}
+            onActivate={() => {
+              const ab = ABILITIES[currentCar.ability];
+              if (abilityCharges <= 0 || abilityActive) return;
+              if (!useAbilityCharge(currentCar.id)) return;
+              playClickSound();
+              const s = stateRef.current;
+              const until = performance.now() + ab.durationMs;
+              if (ab.id === "shield") s.shieldUntil = until;
+              else if (ab.id === "magnet") s.magnetUntil = until;
+              else if (ab.id === "nitro") s.nitroUntil = until;
+              else if (ab.id === "slow") s.slowUntil = until;
+              else if (ab.id === "ghostbust") { s.ghostBustUntil = until; s.ghosts.length = 0; }
+              setAbilityCharges(getAbilityCharges(currentCar.id));
+              setAbilityActive(true);
+              window.setTimeout(() => setAbilityActive(false), ab.durationMs);
+            }}
+          />
+
           {/* Coin collection popups */}
           <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-1">
             <AnimatePresence>
