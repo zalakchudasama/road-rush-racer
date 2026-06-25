@@ -693,6 +693,15 @@ const TurboRacer = () => {
       }
       // collide with player → instant game over
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, g.x - 22, g.y - 22, 44, 50)) {
+        // Shield / Ghost-buster makes the ghost vanish instead of crashing
+        if (shieldOn || ghostBustOn) {
+          ctx.fillStyle = "rgba(180,255,255,0.55)";
+          ctx.beginPath();
+          ctx.ellipse(g.x, g.y, 36, 36, 0, 0, Math.PI * 2);
+          ctx.fill();
+          s.ghosts.splice(gi, 1);
+          continue;
+        }
         ctx.fillStyle = "rgba(0,200,255,0.5)";
         ctx.fillRect(0, 0, W, H);
         s.running = false;
