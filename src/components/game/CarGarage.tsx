@@ -1,6 +1,19 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CARS, CarData, getWallet, getOwnedCars, buyCar, getSelectedCar, setSelectedCar, getDiamonds } from "./cars";
+import {
+  CARS,
+  getWallet,
+  getOwnedCars,
+  buyCar,
+  getSelectedCar,
+  setSelectedCar,
+  getDiamonds,
+  getAbilityCharges,
+  buyAbility,
+  ABILITIES,
+  ABILITY_COST,
+  ABILITY_USES_PER_PURCHASE,
+} from "./cars";
 import { playClickSound } from "./sounds";
 
 interface Props {
@@ -15,10 +28,16 @@ const CarGarage = ({ onBack, onCarChanged, onNext }: Props) => {
   const [selected, setSelected] = useState(getSelectedCar);
   const [msg, setMsg] = useState("");
   const [index, setIndex] = useState(0);
+  const [diamonds, setDiamondsState] = useState(getDiamonds);
+  const [chargesTick, setChargesTick] = useState(0);
 
   const car = CARS[index];
   const isOwned = owned.includes(car.id);
   const isSelected = selected === car.id;
+  const ability = ABILITIES[car.ability];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _tick = chargesTick;
+  const charges = getAbilityCharges(car.id);
 
   const handleBuy = () => {
     if (isOwned) return;
@@ -43,6 +62,26 @@ const CarGarage = ({ onBack, onCarChanged, onNext }: Props) => {
     onCarChanged();
   };
 
+  const handleBuyAbility = () => {
+    if (!isOwned) {
+      setMsg("Buy the car first!");
+      setTimeout(() => setMsg(""), 2000);
+      return;
+    }
+    if (diamonds < ABILITY_COST) {
+      setMsg(`Need ${ABILITY_COST - diamonds} more 💎!`);
+      setTimeout(() => setMsg(""), 2000);
+      return;
+    }
+    const r = buyAbility(car.id);
+    if (r.ok) {
+      setDiamondsState(getDiamonds());
+      setChargesTick(t => t + 1);
+      setMsg(`✨ ${ability.name} ready (+${ABILITY_USES_PER_PURCHASE} uses)`);
+      setTimeout(() => setMsg(""), 2000);
+    }
+  };
+
   const goLeft = () => {
     playClickSound();
     setIndex((prev) => (prev > 0 ? prev - 1 : CARS.length - 1));
@@ -59,15 +98,15 @@ const CarGarage = ({ onBack, onCarChanged, onNext }: Props) => {
       exit={{ opacity: 0 }}
       className="absolute inset-0 flex items-center justify-center z-50 p-4"
     >
-      <div className="flex flex-col items-center w-full max-w-sm">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => { playClickSound(); onBack(); }}
-          className="self-start mb-4 w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold border-2 border-border text-foreground bg-card"
-        >
-          ←
-        </motion.button>
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        onClick={() => { playClickSound(); onBack(); }}
+        className="fixed top-4 left-4 z-50 w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold border-2 border-border text-foreground bg-card"
+      >
+        ←
+      </motion.button>
 
+      <div className="flex flex-col items-center w-full max-w-sm">
         <div className="text-3xl mb-1">🏪</div>
         <h2 className="text-xl font-bold text-foreground mb-1 tracking-wider">CAR GARAGE</h2>
         <div className="flex items-center gap-3 mb-3">
@@ -77,7 +116,7 @@ const CarGarage = ({ onBack, onCarChanged, onNext }: Props) => {
           </div>
           <div className="flex items-center gap-1">
             <span>💎</span>
-            <span className="font-bold text-sm" style={{ color: "#00d4ff" }}>{getDiamonds().toLocaleString()}</span>
+            <span className="font-bold text-sm" style={{ color: "#00d4ff" }}>{diamonds.toLocaleString()}</span>
           </div>
         </div>
 
@@ -151,6 +190,38 @@ const CarGarage = ({ onBack, onCarChanged, onNext }: Props) => {
                 💰 {car.price.toLocaleString()}
               </motion.button>
             )}
+
+            {/* Ability button - below SELECT */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={handleBuyAbility}
+              className="mt-2 px-3 py-1.5 rounded-lg font-bold text-[11px] flex items-center gap-1.5 border-2"
+              style={{
+                borderColor: ability.color,
+                background: charges > 0
+                  ? `linear-gradient(135deg, ${ability.color}33, ${ability.color}11)`
+                  : "transparent",
+                color: "#fff",
+                opacity: isOwned ? 1 : 0.5,
+              }}
+              title={ability.description}
+            >
+              <span>{ability.emoji}</span>
+              <span className="tracking-wider">{ability.name}</span>
+              {charges > 0 ? (
+                <span
+                  className="ml-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono"
+                  style={{ background: "#000", color: ability.color }}
+                >
+                  ×{charges}
+                </span>
+              ) : (
+                <span className="ml-1 text-[10px] opacity-80">💎{ABILITY_COST}</span>
+              )}
+            </motion.button>
+            <div className="text-[9px] text-muted-foreground mt-1 text-center px-1">
+              {ability.description} · {ABILITY_USES_PER_PURCHASE} uses / purchase
+            </div>
           </motion.div>
 
           <motion.button
