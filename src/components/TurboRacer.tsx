@@ -1110,6 +1110,7 @@ const TurboRacer = () => {
               stateRef.current.missionId = m.id;
               stateRef.current.missionDiamondBonus = m.diamondBonus;
               stateRef.current.missionCoinBonus = m.coinBonus;
+              refreshCar();
               setGameState("select");
             }}
             onBack={() => { playClickSound(); setGameState("garage"); }}
