@@ -1013,7 +1013,8 @@ const TurboRacer = () => {
               if (!useAbilityCharge(currentCar.id)) return;
               playClickSound();
               const s = stateRef.current;
-              const until = performance.now() + ab.durationMs;
+              // Ability stays active until the player loses the game
+              const until = Number.POSITIVE_INFINITY;
               if (ab.id === "shield") s.shieldUntil = until;
               else if (ab.id === "magnet") s.magnetUntil = until;
               else if (ab.id === "nitro") s.nitroUntil = until;
@@ -1021,7 +1022,6 @@ const TurboRacer = () => {
               else if (ab.id === "ghostbust") { s.ghostBustUntil = until; s.ghosts.length = 0; }
               setAbilityCharges(getAbilityCharges(currentCar.id));
               setAbilityActive(true);
-              window.setTimeout(() => setAbilityActive(false), ab.durationMs);
             }}
           />
 
