@@ -7,6 +7,7 @@ import GameControls from "./game/GameControls";
 import SettingsButton from "./game/SettingsButton";
 import CarGarage from "./game/CarGarage";
 import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
+import DifficultySelect, { getDifficulty, DIFFICULTY_SPEED_MUL } from "./game/DifficultySelect";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
 import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission, ABILITIES, getAbilityCharges, useAbilityCharge } from "./game/cars";
 import { playClickSound, playCoinSound, playGhostSound } from "./game/sounds";
@@ -15,7 +16,7 @@ const GAME_WIDTH = 420;
 const CAR_W = 50;
 const CAR_H = 80;
 
-type GameState = "splash" | "start" | "mission" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
+type GameState = "splash" | "start" | "difficulty" | "mission" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
 
@@ -854,7 +855,7 @@ const TurboRacer = () => {
     s.diamonds = 0;
     s.x = 185;
     s.y = canvas.height - 150;
-    s.baseSpeed = SENSITIVITY_SPEED[sensitivity] || 5;
+    s.baseSpeed = (SENSITIVITY_SPEED[sensitivity] || 5) * (DIFFICULTY_SPEED_MUL[getDifficulty()] || 1);
     s.speed = s.baseSpeed + s.car.speed;
     s.lineOffset = 0;
     s.lampOffset = 0;
@@ -1091,7 +1092,14 @@ const TurboRacer = () => {
         )}
 
         {gameState === "start" && (
-          <StartScreen onStart={() => setGameState("garage")} />
+          <StartScreen onStart={() => setGameState("difficulty")} />
+        )}
+
+        {gameState === "difficulty" && (
+          <DifficultySelect
+            onPlay={() => { setGameState("garage"); }}
+            onBack={() => setGameState("start")}
+          />
         )}
 
         {gameState === "garage" && (
