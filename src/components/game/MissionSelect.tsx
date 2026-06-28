@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { getCompletedMissions } from "./cars";
+import { getCompletedMissions, getOwnedCars, setSelectedCar } from "./cars";
 import { playClickSound } from "./sounds";
 
 export interface Mission {
@@ -25,10 +25,14 @@ interface Props {
 
 const MissionSelect = ({ onSelect, onBack }: Props) => {
   const completedMissions = getCompletedMissions();
+  const ownedCars = getOwnedCars();
+  const hasLambo = ownedCars.includes("lambo");
   const [index, setIndex] = useState(0);
 
-  // Unlock logic: mission 0 always unlocked, others need previous completed
+  // Last mission is Lambo-only. Others unlock sequentially.
+  const isLastMission = (i: number) => i === MISSIONS.length - 1;
   const isUnlocked = (i: number) => {
+    if (isLastMission(i)) return hasLambo;
     if (i === 0) return true;
     return completedMissions.includes(MISSIONS[i - 1].id);
   };
@@ -36,6 +40,7 @@ const MissionSelect = ({ onSelect, onBack }: Props) => {
   const m = MISSIONS[index];
   const unlocked = isUnlocked(index);
   const isCompleted = completedMissions.includes(m.id);
+  const lastLocked = isLastMission(index) && !hasLambo;
 
   const goLeft = () => {
     playClickSound();
@@ -109,10 +114,29 @@ const MissionSelect = ({ onSelect, onBack }: Props) => {
               {index + 1} / {MISSIONS.length}
             </div>
 
+            {isLastMission(index) && (
+              <div
+                className="mt-2 px-2 py-1 rounded-md text-[10px] font-bold text-center"
+                style={{
+                  background: lastLocked ? "#3a0000" : "#003a1a",
+                  color: lastLocked ? "#ff8888" : "#88ffaa",
+                  border: `1px solid ${lastLocked ? "#ff4444" : "#44dd44"}`,
+                }}
+              >
+                {lastLocked
+                  ? "🔒 Buy 🏁 Lamborghini to unlock"
+                  : "🏁 Lamborghini only — auto-selected"}
+              </div>
+            )}
+
             {unlocked && (
               <motion.button
                 whileTap={{ scale: 0.9 }}
-                onClick={() => { playClickSound(); onSelect(m); }}
+                onClick={() => {
+                  playClickSound();
+                  if (isLastMission(index)) setSelectedCar("lambo");
+                  onSelect(m);
+                }}
                 className="mt-3 px-6 py-2 rounded-lg font-bold text-xs text-primary-foreground tracking-wider"
                 style={{ background: "linear-gradient(135deg, #ff4444, #ff8800)" }}
               >
