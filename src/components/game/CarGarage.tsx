@@ -11,7 +11,6 @@ import {
   getAbilityCharges,
   buyAbility,
   ABILITIES,
-  ABILITY_COST,
   ABILITY_USES_PER_PURCHASE,
 } from "./cars";
 import { playClickSound } from "./sounds";
@@ -68,8 +67,8 @@ const CarGarage = ({ onBack, onCarChanged, onNext }: Props) => {
       setTimeout(() => setMsg(""), 2000);
       return;
     }
-    if (diamonds < ABILITY_COST) {
-      setMsg(`Need ${ABILITY_COST - diamonds} more 💎!`);
+    if (diamonds < car.abilityCost) {
+      setMsg(`Need ${car.abilityCost - diamonds} more 💎!`);
       setTimeout(() => setMsg(""), 2000);
       return;
     }
@@ -216,7 +215,7 @@ const CarGarage = ({ onBack, onCarChanged, onNext }: Props) => {
                   ×{charges}
                 </span>
               ) : (
-                <span className="ml-1 text-[10px] opacity-80">💎{ABILITY_COST}</span>
+                <span className="ml-1 text-[10px] opacity-80">💎{car.abilityCost}</span>
               )}
             </motion.button>
             <div className="text-[9px] text-muted-foreground mt-1 text-center px-1">
