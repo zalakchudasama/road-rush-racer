@@ -26,11 +26,15 @@ const createRacingMusic = (): { start: () => void; stop: () => void } => {
   let nodes: OscillatorNode[] = [];
   let gains: GainNode[] = [];
   let intervalId: number | null = null;
+  let started = false;
 
   return {
     start: () => {
+      if (started) { try { ctx?.resume(); } catch {} return; }
+      started = true;
       try {
         ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        try { ctx.resume(); } catch {}
         const master = ctx.createGain();
         master.gain.value = 0.25;
         master.connect(ctx.destination);
@@ -122,6 +126,7 @@ const createRacingMusic = (): { start: () => void; stop: () => void } => {
         gains = [];
         intervalId = null;
         ctx = null;
+        started = false;
       } catch {}
     }
   };
@@ -168,9 +173,9 @@ const AbilityButton = ({ car, charges, active, onActivate }: AbilityButtonProps)
     <motion.button
       whileTap={{ scale: 0.9 }}
       onClick={onActivate}
-      className="fixed right-4 z-50 w-14 h-14 rounded-full flex flex-col items-center justify-center border-2 font-bold"
+      className="fixed left-3 z-50 w-14 h-14 rounded-full flex flex-col items-center justify-center border-2 font-bold"
       style={{
-        top: 60,
+        bottom: 30,
         borderColor: ab.color,
         background: disabled
           ? "rgba(20,20,20,0.7)"
@@ -191,6 +196,7 @@ const AbilityButton = ({ car, charges, active, onActivate }: AbilityButtonProps)
 const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const racingMusicRef = useRef(createRacingMusic());
+  const musicOnRef = useRef(false);
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
@@ -699,6 +705,26 @@ const TurboRacer = () => {
       }
     }
 
+    // Prevent enemy-vs-enemy overlap: push apart on Y if two normal enemies collide
+    for (let i = 0; i < s.enemies.length; i++) {
+      const a = s.enemies[i];
+      if (a.flipped) continue;
+      for (let j = i + 1; j < s.enemies.length; j++) {
+        const b = s.enemies[j];
+        if (b.flipped) continue;
+        if (boxCollide(a.x, a.y, CAR_W, CAR_H, b.x, b.y, CAR_W, CAR_H)) {
+          const overlapY = (CAR_H) - Math.abs(a.y - b.y);
+          if (a.y < b.y) { a.y -= overlapY / 2 + 1; b.y += overlapY / 2 + 1; }
+          else { a.y += overlapY / 2 + 1; b.y -= overlapY / 2 + 1; }
+          // nudge X slightly apart if in same lane
+          if (Math.abs(a.x - b.x) < CAR_W * 0.6) {
+            if (a.x < b.x) { a.x = Math.max(15, a.x - 4); b.x = Math.min(GAME_WIDTH - CAR_W - 15, b.x + 4); }
+            else { a.x = Math.min(GAME_WIDTH - CAR_W - 15, a.x + 4); b.x = Math.max(15, b.x - 4); }
+          }
+        }
+      }
+    }
+
     // Ghosts: spawn periodically from below the road and rise up toward the player
     const now = performance.now();
     // Ghost-buster: instantly clear all on activation window
@@ -755,6 +781,16 @@ const TurboRacer = () => {
       drawGhost(ctx, g);
       if (g.y < -80) s.ghosts.splice(gi, 1);
       // Ability protections from ghost collisions handled in collide block above
+    }
+
+    // Background racing music ONLY plays while a ghost is visible on screen
+    const ghostVisible = s.ghosts.some(g => g.y < H && g.y > -60);
+    if (ghostVisible && !musicOnRef.current) {
+      musicOnRef.current = true;
+      racingMusicRef.current.start();
+    } else if (!ghostVisible && musicOnRef.current) {
+      musicOnRef.current = false;
+      racingMusicRef.current.stop();
     }
 
     // Magnet: pull coins toward the player
@@ -920,13 +956,28 @@ const TurboRacer = () => {
     setCoins(0);
     setDiamonds_(0);
     setCoinCollections([]);
-    racingMusicRef.current.start();
+    // Music starts inside the loop only when a ghost is on screen
+    musicOnRef.current = false;
     s.rafId = requestAnimationFrame(loop);
   }, [loop, sensitivity]);
 
   useEffect(() => {
     stateRef.current.baseSpeed = SENSITIVITY_SPEED[sensitivity] || 5;
   }, [sensitivity]);
+
+  // Mobile: resume/pause music with tab visibility so it doesn't die silently
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        // If ghost is still on screen when tab returns, ensure music resumes
+        if (musicOnRef.current) {
+          try { racingMusicRef.current.start(); } catch {}
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
 
   useEffect(() => {
     const s = stateRef.current;

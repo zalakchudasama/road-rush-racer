@@ -35,11 +35,11 @@ export const ABILITY_COST = 10;          // legacy default (kept for fallback)
 export const ABILITY_USES_PER_PURCHASE = 3;
 
 export const CARS: CarData[] = [
-  { id: "starter",  name: "Street Racer",     emoji: "🏎️", price: 0,    color1: "#ff4444", color2: "#cc0000", color3: "#880000", speed: 0, description: "Your first ride",  ability: "shield",    abilityCost: 10 },
+  { id: "starter",  name: "Street Racer",     emoji: "🏎️", price: 0,    color1: "#ff4444", color2: "#cc0000", color3: "#880000", speed: 0, description: "Your first ride",  ability: "ghostbust", abilityCost: 10 },
   { id: "nano",     name: "Tata Nano",        emoji: "🚗", price: 1000, color1: "#44dd44", color2: "#22aa22", color3: "#116611", speed: 0, description: "Small & quick",    ability: "magnet",    abilityCost: 20 },
   { id: "swift",    name: "Maruti Swift",     emoji: "🚙", price: 2000, color1: "#4488ff", color2: "#2266cc", color3: "#114488", speed: 1, description: "Smooth handler",   ability: "nitro",     abilityCost: 30 },
   { id: "fortuner", name: "Toyota Fortuner",  emoji: "🚐", price: 3000, color1: "#ffffff", color2: "#cccccc", color3: "#888888", speed: 1, description: "Big & powerful",   ability: "slow",      abilityCost: 40 },
-  { id: "scorpio",  name: "Mahindra Scorpio", emoji: "🛻", price: 4000, color1: "#111111", color2: "#333333", color3: "#000000", speed: 2, description: "Beast on road",    ability: "ghostbust", abilityCost: 50 },
+  { id: "scorpio",  name: "Mahindra Scorpio", emoji: "🛻", price: 4000, color1: "#111111", color2: "#333333", color3: "#000000", speed: 2, description: "Beast on road",    ability: "shield",    abilityCost: 50 },
   { id: "mustang",  name: "Ford Mustang",     emoji: "🐎", price: 5000, color1: "#ffcc00", color2: "#ddaa00", color3: "#aa7700", speed: 2, description: "American muscle",  ability: "magnet",    abilityCost: 60 },
   { id: "lambo",    name: "Lamborghini",      emoji: "🏁", price: 6000, color1: "#ff6600", color2: "#dd4400", color3: "#aa2200", speed: 3, description: "Ultimate speed",   ability: "nitro",     abilityCost: 70 },
 ];
