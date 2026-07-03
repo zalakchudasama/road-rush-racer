@@ -196,6 +196,7 @@ const AbilityButton = ({ car, charges, active, onActivate }: AbilityButtonProps)
 const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const racingMusicRef = useRef(createRacingMusic());
+  const musicOnRef = useRef(false);
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
