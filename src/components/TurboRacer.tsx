@@ -168,9 +168,9 @@ const AbilityButton = ({ car, charges, active, onActivate }: AbilityButtonProps)
     <motion.button
       whileTap={{ scale: 0.9 }}
       onClick={onActivate}
-      className="fixed right-4 z-50 w-14 h-14 rounded-full flex flex-col items-center justify-center border-2 font-bold"
+      className="fixed left-3 z-50 w-14 h-14 rounded-full flex flex-col items-center justify-center border-2 font-bold"
       style={{
-        top: 60,
+        bottom: 30,
         borderColor: ab.color,
         background: disabled
           ? "rgba(20,20,20,0.7)"
