@@ -26,11 +26,15 @@ const createRacingMusic = (): { start: () => void; stop: () => void } => {
   let nodes: OscillatorNode[] = [];
   let gains: GainNode[] = [];
   let intervalId: number | null = null;
+  let started = false;
 
   return {
     start: () => {
+      if (started) { try { ctx?.resume(); } catch {} return; }
+      started = true;
       try {
         ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        try { ctx.resume(); } catch {}
         const master = ctx.createGain();
         master.gain.value = 0.25;
         master.connect(ctx.destination);
@@ -122,6 +126,7 @@ const createRacingMusic = (): { start: () => void; stop: () => void } => {
         gains = [];
         intervalId = null;
         ctx = null;
+        started = false;
       } catch {}
     }
   };
