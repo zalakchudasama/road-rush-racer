@@ -956,13 +956,28 @@ const TurboRacer = () => {
     setCoins(0);
     setDiamonds_(0);
     setCoinCollections([]);
-    racingMusicRef.current.start();
+    // Music starts inside the loop only when a ghost is on screen
+    musicOnRef.current = false;
     s.rafId = requestAnimationFrame(loop);
   }, [loop, sensitivity]);
 
   useEffect(() => {
     stateRef.current.baseSpeed = SENSITIVITY_SPEED[sensitivity] || 5;
   }, [sensitivity]);
+
+  // Mobile: resume/pause music with tab visibility so it doesn't die silently
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        // If ghost is still on screen when tab returns, ensure music resumes
+        if (musicOnRef.current) {
+          try { racingMusicRef.current.start(); } catch {}
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
 
   useEffect(() => {
     const s = stateRef.current;
