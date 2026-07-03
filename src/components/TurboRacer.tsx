@@ -705,6 +705,26 @@ const TurboRacer = () => {
       }
     }
 
+    // Prevent enemy-vs-enemy overlap: push apart on Y if two normal enemies collide
+    for (let i = 0; i < s.enemies.length; i++) {
+      const a = s.enemies[i];
+      if (a.flipped) continue;
+      for (let j = i + 1; j < s.enemies.length; j++) {
+        const b = s.enemies[j];
+        if (b.flipped) continue;
+        if (boxCollide(a.x, a.y, CAR_W, CAR_H, b.x, b.y, CAR_W, CAR_H)) {
+          const overlapY = (CAR_H) - Math.abs(a.y - b.y);
+          if (a.y < b.y) { a.y -= overlapY / 2 + 1; b.y += overlapY / 2 + 1; }
+          else { a.y += overlapY / 2 + 1; b.y -= overlapY / 2 + 1; }
+          // nudge X slightly apart if in same lane
+          if (Math.abs(a.x - b.x) < CAR_W * 0.6) {
+            if (a.x < b.x) { a.x = Math.max(15, a.x - 4); b.x = Math.min(GAME_WIDTH - CAR_W - 15, b.x + 4); }
+            else { a.x = Math.min(GAME_WIDTH - CAR_W - 15, a.x + 4); b.x = Math.max(15, b.x - 4); }
+          }
+        }
+      }
+    }
+
     // Ghosts: spawn periodically from below the road and rise up toward the player
     const now = performance.now();
     // Ghost-buster: instantly clear all on activation window
@@ -761,6 +781,16 @@ const TurboRacer = () => {
       drawGhost(ctx, g);
       if (g.y < -80) s.ghosts.splice(gi, 1);
       // Ability protections from ghost collisions handled in collide block above
+    }
+
+    // Background racing music ONLY plays while a ghost is visible on screen
+    const ghostVisible = s.ghosts.some(g => g.y < H && g.y > -60);
+    if (ghostVisible && !musicOnRef.current) {
+      musicOnRef.current = true;
+      racingMusicRef.current.start();
+    } else if (!ghostVisible && musicOnRef.current) {
+      musicOnRef.current = false;
+      racingMusicRef.current.stop();
     }
 
     // Magnet: pull coins toward the player
