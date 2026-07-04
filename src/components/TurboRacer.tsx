@@ -5,6 +5,8 @@ import SplashScreen from "./game/SplashScreen";
 import StartScreen from "./game/StartScreen";
 import GameControls from "./game/GameControls";
 import SettingsButton from "./game/SettingsButton";
+import CustomizeInterface from "./game/CustomizeInterface";
+import { ControlLayout, BtnLayout, loadLayout } from "./game/controlLayout";
 import CarGarage from "./game/CarGarage";
 import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
 import DifficultySelect, { getDifficulty, DIFFICULTY_SPEED_MUL } from "./game/DifficultySelect";
@@ -164,30 +166,36 @@ interface AbilityButtonProps {
   charges: number;
   active: boolean;
   onActivate: () => void;
+  onStop: () => void;
+  layout?: BtnLayout;
 }
 
-const AbilityButton = ({ car, charges, active, onActivate }: AbilityButtonProps) => {
+const AbilityButton = ({ car, charges, active, onActivate, onStop, layout }: AbilityButtonProps) => {
   const ab = ABILITIES[car.ability];
-  const disabled = charges <= 0 || active;
+  const disabled = charges <= 0 && !active;
+  const size = layout?.size ?? 56;
   return (
     <motion.button
       whileTap={{ scale: 0.9 }}
-      onClick={onActivate}
-      className="fixed left-3 z-50 w-14 h-14 rounded-full flex flex-col items-center justify-center border-2 font-bold"
+      onClick={() => (active ? onStop() : onActivate())}
+      className="fixed z-50 rounded-full flex flex-col items-center justify-center border-2 font-bold"
       style={{
-        bottom: 30,
+        ...(layout
+          ? { left: layout.x, top: layout.y, width: size, height: size }
+          : { left: 12, bottom: 30, width: 56, height: 56 }),
         borderColor: ab.color,
         background: disabled
           ? "rgba(20,20,20,0.7)"
           : `linear-gradient(135deg, ${ab.color}cc, ${ab.color}66)`,
         opacity: disabled ? 0.55 : 1,
         boxShadow: active ? `0 0 18px ${ab.color}` : "none",
+        touchAction: "none",
       }}
-      title={`${ab.name} — ${ab.description}`}
+      title={active ? `${ab.name} — tap to stop` : `${ab.name} — ${ab.description}`}
     >
-      <span className="text-lg leading-none">{ab.emoji}</span>
-      <span className="text-[10px] font-mono mt-0.5 text-white">
-        {active ? "ON" : `×${charges}`}
+      <span className="leading-none" style={{ fontSize: Math.max(14, size * 0.35) }}>{ab.emoji}</span>
+      <span className="font-mono mt-0.5 text-white" style={{ fontSize: Math.max(8, size * 0.18) }}>
+        {active ? "STOP" : `×${charges}`}
       </span>
     </motion.button>
   );
