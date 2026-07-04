@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 interface Props {
   sensitivity: number;
   onSensitivityChange: (val: number) => void;
+  onCustomize?: () => void;
 }
 
 const labels = ["Low", "Medium", "High"];
 
-const SettingsButton = ({ sensitivity, onSensitivityChange }: Props) => {
+const SettingsButton = ({ sensitivity, onSensitivityChange, onCustomize }: Props) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -49,6 +50,15 @@ const SettingsButton = ({ sensitivity, onSensitivityChange }: Props) => {
                 </button>
               ))}
             </div>
+
+            {onCustomize && (
+              <button
+                onClick={() => { setOpen(false); onCustomize(); }}
+                className="mt-3 w-full py-2 rounded-lg text-xs font-bold tracking-wider bg-primary/15 text-primary border border-primary/40 flex items-center justify-center gap-1"
+              >
+                🎮 Customize Interface
+              </button>
+            )}
 
             <button
               onClick={() => setOpen(false)}
