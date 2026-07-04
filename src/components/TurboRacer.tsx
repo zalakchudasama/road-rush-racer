@@ -1068,12 +1068,17 @@ const TurboRacer = () => {
             ⏸️
           </motion.button>
 
-          <SettingsButton sensitivity={sensitivity} onSensitivityChange={setSensitivity} />
+          <SettingsButton
+            sensitivity={sensitivity}
+            onSensitivityChange={setSensitivity}
+            onCustomize={() => setShowCustomize(true)}
+          />
 
           <AbilityButton
             car={currentCar}
             charges={abilityCharges}
             active={abilityActive}
+            layout={controlLayout.ability}
             onActivate={() => {
               const ab = ABILITIES[currentCar.ability];
               if (abilityCharges <= 0 || abilityActive) return;
@@ -1089,6 +1094,16 @@ const TurboRacer = () => {
               else if (ab.id === "ghostbust") { s.ghostBustUntil = until; s.ghosts.length = 0; }
               setAbilityCharges(getAbilityCharges(currentCar.id));
               setAbilityActive(true);
+            }}
+            onStop={() => {
+              playClickSound();
+              const s = stateRef.current;
+              s.shieldUntil = 0;
+              s.magnetUntil = 0;
+              s.nitroUntil = 0;
+              s.slowUntil = 0;
+              s.ghostBustUntil = 0;
+              setAbilityActive(false);
             }}
           />
 
@@ -1122,6 +1137,7 @@ const TurboRacer = () => {
       {(gameState === "playing" || gameState === "paused") && (
         <GameControls
           sensitivity={sensitivity}
+          layout={controlLayout}
           onControl={(dir) => {
             const s = stateRef.current;
             s.keys.ArrowLeft = dir.left;
@@ -1132,6 +1148,14 @@ const TurboRacer = () => {
           onBoost={(active) => {
             boostActiveRef.current = active;
           }}
+        />
+      )}
+
+      {showCustomize && (
+        <CustomizeInterface
+          initial={controlLayout}
+          onSave={(l) => { setControlLayout(l); setShowCustomize(false); }}
+          onCancel={() => setShowCustomize(false)}
         />
       )}
 
