@@ -211,6 +211,13 @@ const TurboRacer = () => {
   const [diamonds, setDiamonds_] = useState(0);
   const [theme, setTheme] = useState<GameTheme>(THEMES.rain);
   const [sensitivity, setSensitivity] = useState(2);
+  const [controlLayout, setControlLayout] = useState<ControlLayout>(() => loadLayout());
+  const [showCustomize, setShowCustomize] = useState(false);
+  useEffect(() => {
+    const onResize = () => setControlLayout(loadLayout());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const [lastScore, setLastScore] = useState(0);
   const [lastCoins, setLastCoins] = useState(0);
   const [totalWallet, setTotalWallet] = useState(getWallet);
