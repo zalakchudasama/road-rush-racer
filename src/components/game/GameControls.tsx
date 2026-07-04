@@ -1,12 +1,14 @@
 import { useRef, useCallback, useEffect, useState } from "react";
+import type { ControlLayout, BtnLayout } from "./controlLayout";
 
 interface GameControlsProps {
   onControl: (dir: { left: boolean; right: boolean; up: boolean; down: boolean }) => void;
   sensitivity: number;
   onBoost?: (active: boolean) => void;
+  layout?: ControlLayout;
 }
 
-const GameControls = ({ onControl, sensitivity, onBoost }: GameControlsProps) => {
+const GameControls = ({ onControl, sensitivity, onBoost, layout }: GameControlsProps) => {
   const pressedRef = useRef({ left: false, right: false, up: false, down: false });
   const [boostMeter, setBoostMeter] = useState(0); // 0-100
   const [boosting, setBoosting] = useState(false);
@@ -66,57 +68,53 @@ const GameControls = ({ onControl, sensitivity, onBoost }: GameControlsProps) =>
   const btnBase = "flex items-center justify-center select-none active:scale-90 transition-transform duration-75";
   const size = sensitivity === 3 ? 56 : sensitivity === 2 ? 52 : 48;
 
+  const posStyle = (b: BtnLayout | undefined, fallback: React.CSSProperties): React.CSSProperties =>
+    b
+      ? { position: "fixed", left: b.x, top: b.y, width: b.size, height: b.size, borderRadius: "50%", touchAction: "none" }
+      : { ...fallback, touchAction: "none" };
+
   return (
     <>
-      {/* LEFT SIDE: Left & Right steering buttons (horizontal) */}
-      <div
-        className="fixed left-3 z-50 flex flex-row items-center gap-3"
-        style={{ bottom: 100 }}
+      {/* LEFT steering */}
+      <button
+        className={btnBase + " fixed z-50"}
+        style={{
+          ...posStyle(layout?.left, { position: "fixed", left: 12, bottom: 100, width: size, height: size, borderRadius: "50%" }),
+          background: "linear-gradient(135deg, #4488ff, #2266dd)",
+          border: "2px solid rgba(255,255,255,0.3)",
+          boxShadow: "0 3px 10px rgba(68,136,255,0.4)",
+        }}
+        onPointerDown={(e) => { e.preventDefault(); press("left"); }}
+        onPointerUp={() => release("left")}
+        onPointerLeave={() => release("left")}
+        onPointerCancel={() => release("left")}
       >
-        <button
-          className={btnBase}
-          style={{
-            width: size, height: size, borderRadius: "50%",
-            background: "linear-gradient(135deg, #4488ff, #2266dd)",
-            border: "2px solid rgba(255,255,255,0.3)",
-            boxShadow: "0 3px 10px rgba(68,136,255,0.4)",
-            touchAction: "none",
-          }}
-          onPointerDown={(e) => { e.preventDefault(); press("left"); }}
-          onPointerUp={() => release("left")}
-          onPointerLeave={() => release("left")}
-          onPointerCancel={() => release("left")}
-        >
-          <span className="text-white text-xl font-bold">◀</span>
-        </button>
-        <button
-          className={btnBase}
-          style={{
-            width: size, height: size, borderRadius: "50%",
-            background: "linear-gradient(135deg, #ffaa00, #dd8800)",
-            border: "2px solid rgba(255,255,255,0.3)",
-            boxShadow: "0 3px 10px rgba(255,170,0,0.4)",
-            touchAction: "none",
-          }}
-          onPointerDown={(e) => { e.preventDefault(); press("right"); }}
-          onPointerUp={() => release("right")}
-          onPointerLeave={() => release("right")}
-          onPointerCancel={() => release("right")}
-        >
-          <span className="text-white text-xl font-bold">▶</span>
-        </button>
-      </div>
+        <span className="text-white text-xl font-bold">◀</span>
+      </button>
 
-      {/* CENTER BOTTOM: Boost button */}
-      <div
-        className="fixed left-1/2 -translate-x-1/2 z-50 flex flex-col items-center"
-        style={{ bottom: 100 }}
+      {/* RIGHT steering */}
+      <button
+        className={btnBase + " fixed z-50"}
+        style={{
+          ...posStyle(layout?.right, { position: "fixed", left: 12 + size + 12, bottom: 100, width: size, height: size, borderRadius: "50%" }),
+          background: "linear-gradient(135deg, #ffaa00, #dd8800)",
+          border: "2px solid rgba(255,255,255,0.3)",
+          boxShadow: "0 3px 10px rgba(255,170,0,0.4)",
+        }}
+        onPointerDown={(e) => { e.preventDefault(); press("right"); }}
+        onPointerUp={() => release("right")}
+        onPointerLeave={() => release("right")}
+        onPointerCancel={() => release("right")}
       >
-        <button
-          className={btnBase}
-          onPointerDown={(e) => { e.preventDefault(); activateBoost(); }}
-          style={{
-            width: 64, height: 64, borderRadius: "50%",
+        <span className="text-white text-xl font-bold">▶</span>
+      </button>
+
+      {/* BOOST */}
+      <button
+        className={btnBase + " fixed z-50"}
+        onPointerDown={(e) => { e.preventDefault(); activateBoost(); }}
+        style={{
+            ...posStyle(layout?.boost, { position: "fixed", left: "50%", bottom: 100, width: 64, height: 64, borderRadius: "50%", transform: "translateX(-50%)" }),
             background: boosting
               ? "linear-gradient(135deg, #ff4400, #ff8800)"
               : boostMeter >= 30
@@ -128,71 +126,53 @@ const GameControls = ({ onControl, sensitivity, onBoost }: GameControlsProps) =>
               : boostMeter >= 30
                 ? "0 0 15px rgba(0,200,255,0.5)"
                 : "none",
-            touchAction: "none",
-            position: "relative",
             overflow: "hidden",
-          }}
-        >
-          {/* Fill indicator */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: `${boostMeter}%`,
-              background: boosting
-                ? "rgba(255,200,0,0.3)"
-                : "rgba(0,200,255,0.25)",
-              transition: "height 0.1s linear",
-            }}
-          />
-          <span className="text-white text-lg font-bold relative z-10">🚀</span>
-        </button>
-        <p className="text-[10px] mt-1 tracking-wider opacity-50 text-foreground">
-          {boosting ? "BOOST!" : boostMeter >= 30 ? `${boostMeter}%` : `${boostMeter}%`}
-        </p>
-      </div>
-
-      {/* RIGHT SIDE: Up & Down speed buttons */}
-      <div
-        className="fixed right-3 z-50 flex flex-col items-center gap-3"
-        style={{ bottom: 90 }}
+        }}
       >
-        <button
-          className={btnBase}
+        <div
           style={{
-            width: size, height: size, borderRadius: "50%",
-            background: "linear-gradient(135deg, #00cc66, #00aa55)",
-            border: "2px solid rgba(255,255,255,0.3)",
-            boxShadow: "0 3px 10px rgba(0,200,100,0.4)",
-            touchAction: "none",
+            position: "absolute", bottom: 0, left: 0, right: 0,
+            height: `${boostMeter}%`,
+            background: boosting ? "rgba(255,200,0,0.3)" : "rgba(0,200,255,0.25)",
+            transition: "height 0.1s linear",
           }}
-          onPointerDown={(e) => { e.preventDefault(); press("up"); }}
-          onPointerUp={() => release("up")}
-          onPointerLeave={() => release("up")}
-          onPointerCancel={() => release("up")}
-        >
-          <span className="text-white text-xl font-bold">▲</span>
-        </button>
-        <button
-          className={btnBase}
-          style={{
-            width: size, height: size, borderRadius: "50%",
-            background: "linear-gradient(135deg, #ff4444, #cc2222)",
-            border: "2px solid rgba(255,255,255,0.3)",
-            boxShadow: "0 3px 10px rgba(255,50,50,0.4)",
-            touchAction: "none",
-          }}
-          onPointerDown={(e) => { e.preventDefault(); press("down"); }}
-          onPointerUp={() => release("down")}
-          onPointerLeave={() => release("down")}
-          onPointerCancel={() => release("down")}
-        >
-          <span className="text-white text-xl font-bold">▼</span>
-        </button>
-        <p className="text-[10px] tracking-wider opacity-40 text-foreground">SPEED</p>
-      </div>
+        />
+        <span className="text-white text-lg font-bold relative z-10">🚀</span>
+      </button>
+
+      {/* UP */}
+      <button
+        className={btnBase + " fixed z-50"}
+        style={{
+          ...posStyle(layout?.up, { position: "fixed", right: 12, bottom: 90 + size + 12, width: size, height: size, borderRadius: "50%" }),
+          background: "linear-gradient(135deg, #00cc66, #00aa55)",
+          border: "2px solid rgba(255,255,255,0.3)",
+          boxShadow: "0 3px 10px rgba(0,200,100,0.4)",
+        }}
+        onPointerDown={(e) => { e.preventDefault(); press("up"); }}
+        onPointerUp={() => release("up")}
+        onPointerLeave={() => release("up")}
+        onPointerCancel={() => release("up")}
+      >
+        <span className="text-white text-xl font-bold">▲</span>
+      </button>
+
+      {/* DOWN */}
+      <button
+        className={btnBase + " fixed z-50"}
+        style={{
+          ...posStyle(layout?.down, { position: "fixed", right: 12, bottom: 90, width: size, height: size, borderRadius: "50%" }),
+          background: "linear-gradient(135deg, #ff4444, #cc2222)",
+          border: "2px solid rgba(255,255,255,0.3)",
+          boxShadow: "0 3px 10px rgba(255,50,50,0.4)",
+        }}
+        onPointerDown={(e) => { e.preventDefault(); press("down"); }}
+        onPointerUp={() => release("down")}
+        onPointerLeave={() => release("down")}
+        onPointerCancel={() => release("down")}
+      >
+        <span className="text-white text-xl font-bold">▼</span>
+      </button>
     </>
   );
 };
