@@ -284,6 +284,9 @@ const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const racingMusicRef = useRef(createRacingMusic());
   const musicOnRef = useRef(false);
+  const horrorMusicRef = useRef(createHorrorAmbience());
+  const horrorOnRef = useRef(false);
+  const wasRunningBeforeCustomizeRef = useRef(false);
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
@@ -321,6 +324,7 @@ const TurboRacer = () => {
     diamonds_: [] as GameDiamond[],
     ghosts: [] as GameGhost[],
     nextGhostAt: 0,
+    ghostWarnings: [] as GhostWarning[],
     particles: [] as Particle[],
     lineOffset: 0,
     lampOffset: 0,
