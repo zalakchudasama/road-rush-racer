@@ -89,16 +89,16 @@ const DifficultySelect = ({ onPlay, onBack }: Props) => {
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => {
-                  if (d.id !== "easy") return;
+                  if (d.id === "hard") return;
                   playClickSound();
                   setDifficulty(d.id);
                   onPlay(d.id);
                 }}
-                disabled={d.id !== "easy"}
+                disabled={d.id === "hard"}
                 className="w-full py-1.5 rounded-lg font-bold text-xs tracking-widest text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: d.color }}
               >
-                {d.id === "easy" ? "▶ PLAY" : "🔒"}
+                {d.id === "easy" ? "▶ PLAY" : d.id === "medium" ? "▶ JOIN" : "🔒"}
               </motion.button>
             </motion.div>
           ))}
