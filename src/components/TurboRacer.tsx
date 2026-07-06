@@ -136,7 +136,8 @@ const createRacingMusic = (): { start: () => void; stop: () => void } => {
 };
 interface GameCoin { x: number; y: number; value: number; color: string; label: string }
 interface GameDiamond { x: number; y: number }
-interface GameGhost { x: number; y: number; vy: number; vx: number; phase: number; screamed: boolean }
+interface GameGhost { x: number; y: number; vy: number; vx: number; phase: number; screamed: boolean; vanishAt: number }
+interface GhostWarning { x: number; y: number; spawnAt: number }
 interface GameEnemy { x: number; y: number; vx?: number; flipped?: boolean; flipT?: number; flipVX?: number; flipVY?: number; flipRot?: number }
 
 const COIN_TYPES = [
