@@ -140,6 +140,83 @@ interface GameGhost { x: number; y: number; vy: number; vx: number; phase: numbe
 interface GhostWarning { x: number; y: number; spawnAt: number }
 interface GameEnemy { x: number; y: number; vx?: number; flipped?: boolean; flipT?: number; flipVX?: number; flipVY?: number; flipRot?: number }
 
+// Silent horror ambience — very quiet drone with occasional creepy detune swells
+const createHorrorAmbience = (): { start: () => void; stop: () => void } => {
+  let ctx: AudioContext | null = null;
+  let nodes: OscillatorNode[] = [];
+  let intervalId: number | null = null;
+  let started = false;
+  return {
+    start: () => {
+      if (started) { try { ctx?.resume(); } catch {} return; }
+      started = true;
+      try {
+        ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        try { ctx.resume(); } catch {}
+        const master = ctx.createGain();
+        master.gain.value = 0.05;
+        master.connect(ctx.destination);
+
+        const drone = ctx.createOscillator();
+        const droneG = ctx.createGain();
+        drone.type = "sine";
+        drone.frequency.value = 55;
+        droneG.gain.value = 0.7;
+        drone.connect(droneG); droneG.connect(master);
+        drone.start();
+        nodes.push(drone);
+
+        const pad = ctx.createOscillator();
+        const padG = ctx.createGain();
+        pad.type = "triangle";
+        pad.frequency.value = 82;
+        padG.gain.value = 0.35;
+        pad.connect(padG); padG.connect(master);
+        pad.start();
+        nodes.push(pad);
+
+        const lfo = ctx.createOscillator();
+        const lfoG = ctx.createGain();
+        lfo.type = "sine";
+        lfo.frequency.value = 0.18;
+        lfoG.gain.value = 6;
+        lfo.connect(lfoG);
+        lfoG.connect(drone.frequency);
+        lfoG.connect(pad.frequency);
+        lfo.start();
+        nodes.push(lfo);
+
+        intervalId = window.setInterval(() => {
+          if (!ctx) return;
+          const t = ctx.currentTime;
+          const shriek = ctx.createOscillator();
+          const sg = ctx.createGain();
+          shriek.type = "sawtooth";
+          shriek.frequency.value = 180 + Math.random() * 120;
+          sg.gain.value = 0.0;
+          shriek.connect(sg); sg.connect(master);
+          shriek.start();
+          sg.gain.linearRampToValueAtTime(0.25, t + 0.6);
+          shriek.frequency.exponentialRampToValueAtTime(60, t + 2.4);
+          sg.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+          shriek.stop(t + 2.55);
+        }, 6500);
+      } catch {}
+    },
+    stop: () => {
+      try {
+        if (intervalId) clearInterval(intervalId);
+        nodes.forEach(n => { try { n.stop(); } catch {} });
+        if (ctx) ctx.close();
+        nodes = [];
+        intervalId = null;
+        ctx = null;
+        started = false;
+      } catch {}
+    },
+  };
+};
+
 const COIN_TYPES = [
   { value: 50, color: "#cd7f32", label: "50", weight: 5 },
   { value: 100, color: "#c0c0c0", label: "100", weight: 3 },
