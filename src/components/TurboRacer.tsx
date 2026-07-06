@@ -10,6 +10,7 @@ import { ControlLayout, BtnLayout, loadLayout } from "./game/controlLayout";
 import CarGarage from "./game/CarGarage";
 import MissionSelect, { Mission, MISSIONS } from "./game/MissionSelect";
 import DifficultySelect, { getDifficulty, DIFFICULTY_SPEED_MUL } from "./game/DifficultySelect";
+import MultiplayerLobby from "./game/MultiplayerLobby";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
 import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission, ABILITIES, getAbilityCharges, useAbilityCharge } from "./game/cars";
 import { playClickSound, playCoinSound, playGhostSound } from "./game/sounds";
@@ -18,7 +19,7 @@ const GAME_WIDTH = 420;
 const CAR_W = 50;
 const CAR_H = 80;
 
-type GameState = "splash" | "start" | "difficulty" | "mission" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
+type GameState = "splash" | "start" | "difficulty" | "lobby" | "mission" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
 
 interface Particle { x: number; y: number; size: number; speed: number }
 
@@ -1187,8 +1188,27 @@ const TurboRacer = () => {
 
         {gameState === "difficulty" && (
           <DifficultySelect
-            onPlay={() => { setGameState("garage"); }}
+            onPlay={(d) => {
+              if (d === "medium") setGameState("lobby");
+              else setGameState("garage");
+            }}
             onBack={() => setGameState("start")}
+          />
+        )}
+
+        {gameState === "lobby" && (
+          <MultiplayerLobby
+            onStart={({ themeId }) => {
+              refreshCar();
+              const m = MISSIONS[0];
+              setCurrentMission(m);
+              stateRef.current.targetScore = m.target;
+              stateRef.current.missionId = m.id;
+              stateRef.current.missionDiamondBonus = m.diamondBonus;
+              stateRef.current.missionCoinBonus = m.coinBonus;
+              startGame(themeId);
+            }}
+            onBack={() => setGameState("difficulty")}
           />
         )}
 

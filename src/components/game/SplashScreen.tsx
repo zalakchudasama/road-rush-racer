@@ -31,16 +31,17 @@ const SplashScreen = ({ onComplete }: Props) => {
   }, []);
 
   useEffect(() => {
+    // Exactly 5 seconds
     const interval = setInterval(() => {
       setProgress((p) => {
         if (p >= 100) {
           clearInterval(interval);
-          setTimeout(onComplete, 400);
+          setTimeout(onComplete, 0);
           return 100;
         }
-        return p + 2;
+        return p + 1;
       });
-    }, 40);
+    }, 50);
     return () => clearInterval(interval);
   }, [onComplete]);
 

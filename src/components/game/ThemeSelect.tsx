@@ -8,7 +8,7 @@ interface Props {
   onBack?: () => void;
 }
 
-const themeList: ThemeId[] = ["rain", "lava", "ice", "desert"];
+const themeList: ThemeId[] = ["rain", "lava", "ice", "desert", "alien"];
 
 const ThemeSelect = ({ onSelect, onBack }: Props) => {
   const [index, setIndex] = useState(0);
