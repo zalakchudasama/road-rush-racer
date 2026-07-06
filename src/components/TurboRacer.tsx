@@ -136,8 +136,86 @@ const createRacingMusic = (): { start: () => void; stop: () => void } => {
 };
 interface GameCoin { x: number; y: number; value: number; color: string; label: string }
 interface GameDiamond { x: number; y: number }
-interface GameGhost { x: number; y: number; vy: number; vx: number; phase: number; screamed: boolean }
+interface GameGhost { x: number; y: number; vy: number; vx: number; phase: number; screamed: boolean; vanishAt: number }
+interface GhostWarning { x: number; y: number; spawnAt: number }
 interface GameEnemy { x: number; y: number; vx?: number; flipped?: boolean; flipT?: number; flipVX?: number; flipVY?: number; flipRot?: number }
+
+// Silent horror ambience — very quiet drone with occasional creepy detune swells
+const createHorrorAmbience = (): { start: () => void; stop: () => void } => {
+  let ctx: AudioContext | null = null;
+  let nodes: OscillatorNode[] = [];
+  let intervalId: number | null = null;
+  let started = false;
+  return {
+    start: () => {
+      if (started) { try { ctx?.resume(); } catch {} return; }
+      started = true;
+      try {
+        ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        try { ctx.resume(); } catch {}
+        const master = ctx.createGain();
+        master.gain.value = 0.05;
+        master.connect(ctx.destination);
+
+        const drone = ctx.createOscillator();
+        const droneG = ctx.createGain();
+        drone.type = "sine";
+        drone.frequency.value = 55;
+        droneG.gain.value = 0.7;
+        drone.connect(droneG); droneG.connect(master);
+        drone.start();
+        nodes.push(drone);
+
+        const pad = ctx.createOscillator();
+        const padG = ctx.createGain();
+        pad.type = "triangle";
+        pad.frequency.value = 82;
+        padG.gain.value = 0.35;
+        pad.connect(padG); padG.connect(master);
+        pad.start();
+        nodes.push(pad);
+
+        const lfo = ctx.createOscillator();
+        const lfoG = ctx.createGain();
+        lfo.type = "sine";
+        lfo.frequency.value = 0.18;
+        lfoG.gain.value = 6;
+        lfo.connect(lfoG);
+        lfoG.connect(drone.frequency);
+        lfoG.connect(pad.frequency);
+        lfo.start();
+        nodes.push(lfo);
+
+        intervalId = window.setInterval(() => {
+          if (!ctx) return;
+          const t = ctx.currentTime;
+          const shriek = ctx.createOscillator();
+          const sg = ctx.createGain();
+          shriek.type = "sawtooth";
+          shriek.frequency.value = 180 + Math.random() * 120;
+          sg.gain.value = 0.0;
+          shriek.connect(sg); sg.connect(master);
+          shriek.start();
+          sg.gain.linearRampToValueAtTime(0.25, t + 0.6);
+          shriek.frequency.exponentialRampToValueAtTime(60, t + 2.4);
+          sg.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+          shriek.stop(t + 2.55);
+        }, 6500);
+      } catch {}
+    },
+    stop: () => {
+      try {
+        if (intervalId) clearInterval(intervalId);
+        nodes.forEach(n => { try { n.stop(); } catch {} });
+        if (ctx) ctx.close();
+        nodes = [];
+        intervalId = null;
+        ctx = null;
+        started = false;
+      } catch {}
+    },
+  };
+};
 
 const COIN_TYPES = [
   { value: 50, color: "#cd7f32", label: "50", weight: 5 },
@@ -206,6 +284,9 @@ const TurboRacer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const racingMusicRef = useRef(createRacingMusic());
   const musicOnRef = useRef(false);
+  const horrorMusicRef = useRef(createHorrorAmbience());
+  const horrorOnRef = useRef(false);
+  const wasRunningBeforeCustomizeRef = useRef(false);
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
@@ -243,6 +324,7 @@ const TurboRacer = () => {
     diamonds_: [] as GameDiamond[],
     ghosts: [] as GameGhost[],
     nextGhostAt: 0,
+    ghostWarnings: [] as GhostWarning[],
     particles: [] as Particle[],
     lineOffset: 0,
     lampOffset: 0,
@@ -707,7 +789,7 @@ const TurboRacer = () => {
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
         ctx.fill();
         s.running = false;
-        racingMusicRef.current.stop();
+        racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
         addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
         setTotalDiamonds(getDiamonds());
@@ -741,36 +823,61 @@ const TurboRacer = () => {
       }
     }
 
-    // Ghosts: spawn periodically from below the road and rise up toward the player
+    // Ghosts: appear suddenly at a location after a 2s red-dotted warning, stay ~2s, then vanish
     const now = performance.now();
-    // Ghost-buster: instantly clear all on activation window
-    if (ghostBustOn && s.ghosts.length > 0) {
+    if (ghostBustOn) {
       s.ghosts.length = 0;
+      s.ghostWarnings.length = 0;
     }
+    // Schedule a new warning
     if (now >= s.nextGhostAt) {
-      s.ghosts.push({
-        x: 40 + Math.random() * (GAME_WIDTH - 80),
-        y: H + 60,
-        vy: -2.2 - Math.random() * 1.4,
-        vx: (Math.random() - 0.5) * 1.2,
-        phase: Math.random() * Math.PI * 2,
-        screamed: false,
+      s.ghostWarnings.push({
+        x: 60 + Math.random() * (GAME_WIDTH - 120),
+        y: 120 + Math.random() * Math.max(120, H - 260),
+        spawnAt: now + 2000,
       });
       s.nextGhostAt = now + 6000 + Math.random() * 5000;
     }
+    // Draw warnings & promote to ghost when timer elapses
+    for (let wi = s.ghostWarnings.length - 1; wi >= 0; wi--) {
+      const w = s.ghostWarnings[wi];
+      if (now >= w.spawnAt) {
+        s.ghosts.push({
+          x: w.x, y: w.y,
+          vy: 0, vx: 0,
+          phase: Math.random() * Math.PI * 2,
+          screamed: false,
+          vanishAt: now + 2000,
+        });
+        s.ghostWarnings.splice(wi, 1);
+        continue;
+      }
+      const pulse = 0.55 + Math.sin(now * 0.02) * 0.4;
+      ctx.save();
+      ctx.strokeStyle = `rgba(255,40,40,${Math.max(0.25, pulse)})`;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([7, 6]);
+      ctx.lineDashOffset = -now * 0.03;
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, 40, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // faint inner glow
+      ctx.fillStyle = "rgba(255,40,40,0.08)";
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, 38, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    // Ghost lifecycle
     for (let gi = s.ghosts.length - 1; gi >= 0; gi--) {
       const g = s.ghosts[gi];
-      g.y += g.vy;
-      g.x += g.vx;
       g.phase += 0.2;
-      // play horror sound the first time it becomes visible on screen
-      if (!g.screamed && g.y < H - 20) {
-        playGhostSound();
-        g.screamed = true;
-      }
+      if (!g.screamed) { playGhostSound(); g.screamed = true; }
+      // vanish after lifetime
+      if (now >= g.vanishAt) { s.ghosts.splice(gi, 1); continue; }
       // collide with player → instant game over
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, g.x - 22, g.y - 22, 44, 50)) {
-        // Shield / Ghost-buster makes the ghost vanish instead of crashing
         if (shieldOn || ghostBustOn) {
           ctx.fillStyle = "rgba(180,255,255,0.55)";
           ctx.beginPath();
@@ -782,7 +889,7 @@ const TurboRacer = () => {
         ctx.fillStyle = "rgba(0,200,255,0.5)";
         ctx.fillRect(0, 0, W, H);
         s.running = false;
-        racingMusicRef.current.stop();
+        racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
         addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
         setTotalDiamonds(getDiamonds());
@@ -794,9 +901,13 @@ const TurboRacer = () => {
         setGameState("lost");
         return;
       }
+      // fade in/out based on remaining lifetime
+      const life = (g.vanishAt - now) / 2000; // 1..0
+      const alpha = life > 0.85 ? (1 - life) / 0.15 : life < 0.2 ? life / 0.2 : 1;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
       drawGhost(ctx, g);
-      if (g.y < -80) s.ghosts.splice(gi, 1);
-      // Ability protections from ghost collisions handled in collide block above
+      ctx.restore();
     }
 
     // Background racing music ONLY plays while a ghost is visible on screen
@@ -806,7 +917,7 @@ const TurboRacer = () => {
       racingMusicRef.current.start();
     } else if (!ghostVisible && musicOnRef.current) {
       musicOnRef.current = false;
-      racingMusicRef.current.stop();
+      racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
     }
 
     // Magnet: pull coins toward the player
@@ -871,7 +982,7 @@ const TurboRacer = () => {
 
     if (s.score >= s.targetScore) {
       s.running = false;
-      racingMusicRef.current.stop();
+      racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
       addToWallet(s.coins * 10 + Math.floor(s.score / 10) + s.missionCoinBonus);
       addDiamonds(s.diamonds + s.missionDiamondBonus);
       setTotalWallet(getWallet());
@@ -917,6 +1028,7 @@ const TurboRacer = () => {
     s.particles = [];
     s.ghosts = [];
     s.nextGhostAt = performance.now() + 4000 + Math.random() * 3000;
+    s.ghostWarnings = [];
     s.shieldUntil = 0;
     s.magnetUntil = 0;
     s.nitroUntil = 0;
@@ -974,6 +1086,8 @@ const TurboRacer = () => {
     setCoinCollections([]);
     // Music starts inside the loop only when a ghost is on screen
     musicOnRef.current = false;
+    // Start silent horror ambience for the whole run
+    try { horrorMusicRef.current.start(); horrorOnRef.current = true; } catch {}
     s.rafId = requestAnimationFrame(loop);
   }, [loop, sensitivity]);
 
@@ -1061,7 +1175,7 @@ const TurboRacer = () => {
             onClick={() => {
               playClickSound();
               stateRef.current.running = false;
-              racingMusicRef.current.stop();
+              racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
               setGameState("paused");
             }}
             className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-background/80 border-2 border-primary/50 flex items-center justify-center text-lg"
@@ -1072,7 +1186,17 @@ const TurboRacer = () => {
           <SettingsButton
             sensitivity={sensitivity}
             onSensitivityChange={setSensitivity}
-            onCustomize={() => setShowCustomize(true)}
+            onCustomize={() => {
+              const s = stateRef.current;
+              wasRunningBeforeCustomizeRef.current = s.running;
+              s.running = false;
+              cancelAnimationFrame(s.rafId);
+              racingMusicRef.current.stop();
+              musicOnRef.current = false;
+              horrorMusicRef.current.stop();
+              horrorOnRef.current = false;
+              setShowCustomize(true);
+            }}
           />
 
           <AbilityButton
@@ -1155,8 +1279,27 @@ const TurboRacer = () => {
       {showCustomize && (
         <CustomizeInterface
           initial={controlLayout}
-          onSave={(l) => { setControlLayout(l); setShowCustomize(false); }}
-          onCancel={() => setShowCustomize(false)}
+          onSave={(l) => {
+            setControlLayout(l);
+            setShowCustomize(false);
+            if (wasRunningBeforeCustomizeRef.current && gameState === "playing") {
+              const s = stateRef.current;
+              s.running = true;
+              try { horrorMusicRef.current.start(); horrorOnRef.current = true; } catch {}
+              s.rafId = requestAnimationFrame(loop);
+            }
+            wasRunningBeforeCustomizeRef.current = false;
+          }}
+          onCancel={() => {
+            setShowCustomize(false);
+            if (wasRunningBeforeCustomizeRef.current && gameState === "playing") {
+              const s = stateRef.current;
+              s.running = true;
+              try { horrorMusicRef.current.start(); horrorOnRef.current = true; } catch {}
+              s.rafId = requestAnimationFrame(loop);
+            }
+            wasRunningBeforeCustomizeRef.current = false;
+          }}
         />
       )}
 
