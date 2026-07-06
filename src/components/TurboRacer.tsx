@@ -823,36 +823,61 @@ const TurboRacer = () => {
       }
     }
 
-    // Ghosts: spawn periodically from below the road and rise up toward the player
+    // Ghosts: appear suddenly at a location after a 2s red-dotted warning, stay ~2s, then vanish
     const now = performance.now();
-    // Ghost-buster: instantly clear all on activation window
-    if (ghostBustOn && s.ghosts.length > 0) {
+    if (ghostBustOn) {
       s.ghosts.length = 0;
+      s.ghostWarnings.length = 0;
     }
+    // Schedule a new warning
     if (now >= s.nextGhostAt) {
-      s.ghosts.push({
-        x: 40 + Math.random() * (GAME_WIDTH - 80),
-        y: H + 60,
-        vy: -2.2 - Math.random() * 1.4,
-        vx: (Math.random() - 0.5) * 1.2,
-        phase: Math.random() * Math.PI * 2,
-        screamed: false,
+      s.ghostWarnings.push({
+        x: 60 + Math.random() * (GAME_WIDTH - 120),
+        y: 120 + Math.random() * Math.max(120, H - 260),
+        spawnAt: now + 2000,
       });
       s.nextGhostAt = now + 6000 + Math.random() * 5000;
     }
+    // Draw warnings & promote to ghost when timer elapses
+    for (let wi = s.ghostWarnings.length - 1; wi >= 0; wi--) {
+      const w = s.ghostWarnings[wi];
+      if (now >= w.spawnAt) {
+        s.ghosts.push({
+          x: w.x, y: w.y,
+          vy: 0, vx: 0,
+          phase: Math.random() * Math.PI * 2,
+          screamed: false,
+          vanishAt: now + 2000,
+        });
+        s.ghostWarnings.splice(wi, 1);
+        continue;
+      }
+      const pulse = 0.55 + Math.sin(now * 0.02) * 0.4;
+      ctx.save();
+      ctx.strokeStyle = `rgba(255,40,40,${Math.max(0.25, pulse)})`;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([7, 6]);
+      ctx.lineDashOffset = -now * 0.03;
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, 40, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // faint inner glow
+      ctx.fillStyle = "rgba(255,40,40,0.08)";
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, 38, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    // Ghost lifecycle
     for (let gi = s.ghosts.length - 1; gi >= 0; gi--) {
       const g = s.ghosts[gi];
-      g.y += g.vy;
-      g.x += g.vx;
       g.phase += 0.2;
-      // play horror sound the first time it becomes visible on screen
-      if (!g.screamed && g.y < H - 20) {
-        playGhostSound();
-        g.screamed = true;
-      }
+      if (!g.screamed) { playGhostSound(); g.screamed = true; }
+      // vanish after lifetime
+      if (now >= g.vanishAt) { s.ghosts.splice(gi, 1); continue; }
       // collide with player → instant game over
       if (boxCollide(s.x, s.y, CAR_W, CAR_H, g.x - 22, g.y - 22, 44, 50)) {
-        // Shield / Ghost-buster makes the ghost vanish instead of crashing
         if (shieldOn || ghostBustOn) {
           ctx.fillStyle = "rgba(180,255,255,0.55)";
           ctx.beginPath();
@@ -865,6 +890,8 @@ const TurboRacer = () => {
         ctx.fillRect(0, 0, W, H);
         s.running = false;
         racingMusicRef.current.stop();
+        horrorMusicRef.current.stop();
+        horrorOnRef.current = false;
         addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
         setTotalDiamonds(getDiamonds());
@@ -876,9 +903,13 @@ const TurboRacer = () => {
         setGameState("lost");
         return;
       }
+      // fade in/out based on remaining lifetime
+      const life = (g.vanishAt - now) / 2000; // 1..0
+      const alpha = life > 0.85 ? (1 - life) / 0.15 : life < 0.2 ? life / 0.2 : 1;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
       drawGhost(ctx, g);
-      if (g.y < -80) s.ghosts.splice(gi, 1);
-      // Ability protections from ghost collisions handled in collide block above
+      ctx.restore();
     }
 
     // Background racing music ONLY plays while a ghost is visible on screen
