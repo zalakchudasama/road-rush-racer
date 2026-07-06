@@ -1186,7 +1186,17 @@ const TurboRacer = () => {
           <SettingsButton
             sensitivity={sensitivity}
             onSensitivityChange={setSensitivity}
-            onCustomize={() => setShowCustomize(true)}
+            onCustomize={() => {
+              const s = stateRef.current;
+              wasRunningBeforeCustomizeRef.current = s.running;
+              s.running = false;
+              cancelAnimationFrame(s.rafId);
+              racingMusicRef.current.stop();
+              musicOnRef.current = false;
+              horrorMusicRef.current.stop();
+              horrorOnRef.current = false;
+              setShowCustomize(true);
+            }}
           />
 
           <AbilityButton
@@ -1269,8 +1279,27 @@ const TurboRacer = () => {
       {showCustomize && (
         <CustomizeInterface
           initial={controlLayout}
-          onSave={(l) => { setControlLayout(l); setShowCustomize(false); }}
-          onCancel={() => setShowCustomize(false)}
+          onSave={(l) => {
+            setControlLayout(l);
+            setShowCustomize(false);
+            if (wasRunningBeforeCustomizeRef.current && gameState === "playing") {
+              const s = stateRef.current;
+              s.running = true;
+              try { horrorMusicRef.current.start(); horrorOnRef.current = true; } catch {}
+              s.rafId = requestAnimationFrame(loop);
+            }
+            wasRunningBeforeCustomizeRef.current = false;
+          }}
+          onCancel={() => {
+            setShowCustomize(false);
+            if (wasRunningBeforeCustomizeRef.current && gameState === "playing") {
+              const s = stateRef.current;
+              s.running = true;
+              try { horrorMusicRef.current.start(); horrorOnRef.current = true; } catch {}
+              s.rafId = requestAnimationFrame(loop);
+            }
+            wasRunningBeforeCustomizeRef.current = false;
+          }}
         />
       )}
 
