@@ -890,8 +890,6 @@ const TurboRacer = () => {
         ctx.fillRect(0, 0, W, H);
         s.running = false;
         racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
-        horrorMusicRef.current.stop();
-        horrorOnRef.current = false;
         addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
         setTotalDiamonds(getDiamonds());
