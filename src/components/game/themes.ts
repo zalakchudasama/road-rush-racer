@@ -1,4 +1,4 @@
-export type ThemeId = "rain" | "lava" | "ice" | "desert";
+export type ThemeId = "rain" | "lava" | "ice" | "desert" | "alien";
 
 export interface GameTheme {
   id: ThemeId;
@@ -66,5 +66,18 @@ export const THEMES: Record<ThemeId, GameTheme> = {
     skyGlow: "rgba(255,200,80,0.08)",
     lampColor: "#ffcc66",
     lampGlow: "#dd9922",
+  },
+  alien: {
+    id: "alien",
+    name: "ALIEN NEBULA",
+    emoji: "👽",
+    description: "Neon UFO galaxy",
+    road: { top: "#0a0018", mid: "#1a0033", bot: "#0a0018" },
+    edgeColor: "#8a2be2",
+    lineColor: "rgba(0,255,157,0.6)",
+    particles: { color: "rgba(180,120,255,0.75)", count: 60, speed: 4, type: "ember" },
+    skyGlow: "rgba(138,43,226,0.15)",
+    lampColor: "#00ff9d",
+    lampGlow: "#8a2be2",
   },
 };
