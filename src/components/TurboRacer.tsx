@@ -789,7 +789,7 @@ const TurboRacer = () => {
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
         ctx.fill();
         s.running = false;
-        racingMusicRef.current.stop();
+        racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
         addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
         setTotalDiamonds(getDiamonds());
@@ -889,7 +889,7 @@ const TurboRacer = () => {
         ctx.fillStyle = "rgba(0,200,255,0.5)";
         ctx.fillRect(0, 0, W, H);
         s.running = false;
-        racingMusicRef.current.stop();
+        racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
         horrorMusicRef.current.stop();
         horrorOnRef.current = false;
         addDiamonds(s.diamonds);
@@ -919,7 +919,7 @@ const TurboRacer = () => {
       racingMusicRef.current.start();
     } else if (!ghostVisible && musicOnRef.current) {
       musicOnRef.current = false;
-      racingMusicRef.current.stop();
+      racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
     }
 
     // Magnet: pull coins toward the player
@@ -984,7 +984,7 @@ const TurboRacer = () => {
 
     if (s.score >= s.targetScore) {
       s.running = false;
-      racingMusicRef.current.stop();
+      racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
       addToWallet(s.coins * 10 + Math.floor(s.score / 10) + s.missionCoinBonus);
       addDiamonds(s.diamonds + s.missionDiamondBonus);
       setTotalWallet(getWallet());
@@ -1177,7 +1177,7 @@ const TurboRacer = () => {
             onClick={() => {
               playClickSound();
               stateRef.current.running = false;
-              racingMusicRef.current.stop();
+              racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
               setGameState("paused");
             }}
             className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-background/80 border-2 border-primary/50 flex items-center justify-center text-lg"
