@@ -1030,6 +1030,7 @@ const TurboRacer = () => {
     s.particles = [];
     s.ghosts = [];
     s.nextGhostAt = performance.now() + 4000 + Math.random() * 3000;
+    s.ghostWarnings = [];
     s.shieldUntil = 0;
     s.magnetUntil = 0;
     s.nitroUntil = 0;
@@ -1087,6 +1088,8 @@ const TurboRacer = () => {
     setCoinCollections([]);
     // Music starts inside the loop only when a ghost is on screen
     musicOnRef.current = false;
+    // Start silent horror ambience for the whole run
+    try { horrorMusicRef.current.start(); horrorOnRef.current = true; } catch {}
     s.rafId = requestAnimationFrame(loop);
   }, [loop, sensitivity]);
 
