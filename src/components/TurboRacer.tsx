@@ -1077,6 +1077,7 @@ const TurboRacer = () => {
     s.speed = s.baseSpeed + s.car.speed;
     s.lineOffset = 0;
     s.lampOffset = 0;
+    s.distance = 0;
     s.enemies = [];
     s.coins_ = [];
     s.diamonds_ = [];
