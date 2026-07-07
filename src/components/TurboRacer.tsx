@@ -971,6 +971,49 @@ const TurboRacer = () => {
       ctx.fill();
       ctx.restore();
     }
+
+    // ===== Multiplayer: render remote players in world space =====
+    const mp = multiplayerRef.current;
+    if (mp) {
+      const now2 = performance.now();
+      mp.others.forEach((o, id) => {
+        if (now2 - o.lastSeen > 5000) { mp.others.delete(id); return; }
+        // remote y relative to our world distance
+        const ry = s.y + (s.distance - o.dist);
+        if (ry < -CAR_H - 40 || ry > H + 40) return;
+        drawCar3D(ctx, o.x, ry, o.color, false, false);
+        // name label
+        ctx.save();
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        const label = o.name || "player";
+        ctx.font = "bold 10px monospace";
+        const tw = ctx.measureText(label).width + 8;
+        ctx.fillRect(o.x + CAR_W / 2 - tw / 2, ry - 14, tw, 12);
+        ctx.fillStyle = o.color;
+        ctx.textAlign = "center";
+        ctx.fillText(label, o.x + CAR_W / 2, ry - 4);
+        ctx.restore();
+      });
+
+      // Broadcast my position ~15x/s
+      mp.frame = (mp.frame + 1) % 1000;
+      if (mp.frame % 4 === 0) {
+        try {
+          mp.channel.send({
+            type: "broadcast",
+            event: "pos",
+            payload: {
+              id: mp.me.id,
+              x: s.x,
+              dist: s.distance,
+              name: mp.me.name,
+              color: mp.me.color,
+            },
+          });
+        } catch {}
+      }
+    }
+
     drawCar3D(ctx, s.x, s.y, "#ff0000", true);
 
     const moveSpeed = s.speed;
@@ -984,6 +1027,7 @@ const TurboRacer = () => {
     const mult = nitroOn ? 3.2 : isBoost ? 2.5 : 1;
     s.score += nitroOn ? 4 : isBoost ? 3 : 1;
     s.speed = (s.baseSpeed + s.car.speed + Math.floor(s.score / 2000)) * mult;
+    s.distance += s.speed;
 
     if (s.score % 10 === 0) {
       setScore(s.score);
