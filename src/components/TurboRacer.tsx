@@ -14,6 +14,10 @@ import MultiplayerLobby from "./game/MultiplayerLobby";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
 import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission, ABILITIES, getAbilityCharges, useAbilityCharge } from "./game/cars";
 import { playClickSound, playCoinSound, playGhostSound } from "./game/sounds";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+
+interface MpPlayer { id: string; name: string; color: string; isHost: boolean }
+interface RemoteState { x: number; dist: number; name: string; color: string; lastSeen: number }
 
 const GAME_WIDTH = 420;
 const CAR_W = 50;
@@ -287,6 +291,12 @@ const TurboRacer = () => {
   const horrorMusicRef = useRef(createHorrorAmbience());
   const horrorOnRef = useRef(false);
   const wasRunningBeforeCustomizeRef = useRef(false);
+  const multiplayerRef = useRef<{
+    channel: RealtimeChannel;
+    me: MpPlayer;
+    others: Map<string, RemoteState>;
+    frame: number;
+  } | null>(null);
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
@@ -330,6 +340,7 @@ const TurboRacer = () => {
     lampOffset: 0,
     rafId: 0,
     gameH: 700,
+    distance: 0,
     theme: THEMES.rain as GameTheme,
     car: CARS[0] as CarData,
     targetScore: 20000,
@@ -960,6 +971,49 @@ const TurboRacer = () => {
       ctx.fill();
       ctx.restore();
     }
+
+    // ===== Multiplayer: render remote players in world space =====
+    const mp = multiplayerRef.current;
+    if (mp) {
+      const now2 = performance.now();
+      mp.others.forEach((o, id) => {
+        if (now2 - o.lastSeen > 5000) { mp.others.delete(id); return; }
+        // remote y relative to our world distance
+        const ry = s.y + (s.distance - o.dist);
+        if (ry < -CAR_H - 40 || ry > H + 40) return;
+        drawCar3D(ctx, o.x, ry, o.color, false, false);
+        // name label
+        ctx.save();
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        const label = o.name || "player";
+        ctx.font = "bold 10px monospace";
+        const tw = ctx.measureText(label).width + 8;
+        ctx.fillRect(o.x + CAR_W / 2 - tw / 2, ry - 14, tw, 12);
+        ctx.fillStyle = o.color;
+        ctx.textAlign = "center";
+        ctx.fillText(label, o.x + CAR_W / 2, ry - 4);
+        ctx.restore();
+      });
+
+      // Broadcast my position ~15x/s
+      mp.frame = (mp.frame + 1) % 1000;
+      if (mp.frame % 4 === 0) {
+        try {
+          mp.channel.send({
+            type: "broadcast",
+            event: "pos",
+            payload: {
+              id: mp.me.id,
+              x: s.x,
+              dist: s.distance,
+              name: mp.me.name,
+              color: mp.me.color,
+            },
+          });
+        } catch {}
+      }
+    }
+
     drawCar3D(ctx, s.x, s.y, "#ff0000", true);
 
     const moveSpeed = s.speed;
@@ -973,6 +1027,7 @@ const TurboRacer = () => {
     const mult = nitroOn ? 3.2 : isBoost ? 2.5 : 1;
     s.score += nitroOn ? 4 : isBoost ? 3 : 1;
     s.speed = (s.baseSpeed + s.car.speed + Math.floor(s.score / 2000)) * mult;
+    s.distance += s.speed;
 
     if (s.score % 10 === 0) {
       setScore(s.score);
@@ -1022,6 +1077,7 @@ const TurboRacer = () => {
     s.speed = s.baseSpeed + s.car.speed;
     s.lineOffset = 0;
     s.lampOffset = 0;
+    s.distance = 0;
     s.enemies = [];
     s.coins_ = [];
     s.diamonds_ = [];
@@ -1341,7 +1397,17 @@ const TurboRacer = () => {
 
         {gameState === "lobby" && (
           <MultiplayerLobby
-            onStart={({ themeId }) => {
+            onStart={({ themeId, channel, me }) => {
+              // Wire up realtime multiplayer for the race
+              const others = new Map<string, RemoteState>();
+              channel.on("broadcast", { event: "pos" }, ({ payload }) => {
+                const p = payload as { id: string; x: number; dist: number; name: string; color: string };
+                if (!p || p.id === me.id) return;
+                others.set(p.id, {
+                  x: p.x, dist: p.dist, name: p.name, color: p.color, lastSeen: performance.now(),
+                });
+              });
+              multiplayerRef.current = { channel, me, others, frame: 0 };
               refreshCar();
               const m = MISSIONS[0];
               setCurrentMission(m);
