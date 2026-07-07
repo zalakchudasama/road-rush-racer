@@ -1397,7 +1397,17 @@ const TurboRacer = () => {
 
         {gameState === "lobby" && (
           <MultiplayerLobby
-            onStart={({ themeId }) => {
+            onStart={({ themeId, channel, me }) => {
+              // Wire up realtime multiplayer for the race
+              const others = new Map<string, RemoteState>();
+              channel.on("broadcast", { event: "pos" }, ({ payload }) => {
+                const p = payload as { id: string; x: number; dist: number; name: string; color: string };
+                if (!p || p.id === me.id) return;
+                others.set(p.id, {
+                  x: p.x, dist: p.dist, name: p.name, color: p.color, lastSeen: performance.now(),
+                });
+              });
+              multiplayerRef.current = { channel, me, others, frame: 0 };
               refreshCar();
               const m = MISSIONS[0];
               setCurrentMission(m);
