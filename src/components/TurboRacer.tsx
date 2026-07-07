@@ -14,6 +14,10 @@ import MultiplayerLobby from "./game/MultiplayerLobby";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
 import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission, ABILITIES, getAbilityCharges, useAbilityCharge } from "./game/cars";
 import { playClickSound, playCoinSound, playGhostSound } from "./game/sounds";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+
+interface MpPlayer { id: string; name: string; color: string; isHost: boolean }
+interface RemoteState { x: number; dist: number; name: string; color: string; lastSeen: number }
 
 const GAME_WIDTH = 420;
 const CAR_W = 50;
@@ -287,6 +291,12 @@ const TurboRacer = () => {
   const horrorMusicRef = useRef(createHorrorAmbience());
   const horrorOnRef = useRef(false);
   const wasRunningBeforeCustomizeRef = useRef(false);
+  const multiplayerRef = useRef<{
+    channel: RealtimeChannel;
+    me: MpPlayer;
+    others: Map<string, RemoteState>;
+    frame: number;
+  } | null>(null);
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
@@ -330,6 +340,7 @@ const TurboRacer = () => {
     lampOffset: 0,
     rafId: 0,
     gameH: 700,
+    distance: 0,
     theme: THEMES.rain as GameTheme,
     car: CARS[0] as CarData,
     targetScore: 20000,
