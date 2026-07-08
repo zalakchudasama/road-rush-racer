@@ -1872,7 +1872,6 @@ const TurboRacer = () => {
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, hsl(var(--accent)), #ffaa00)" }}
-                  onClick={() => { playClickSound(); startGame(theme.id); }}
                   onClick={() => { playClickSound(); leaveMultiplayer(); startGame(theme.id); }}
                 >
                   🔄 PLAY AGAIN
