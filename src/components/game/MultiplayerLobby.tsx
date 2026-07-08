@@ -18,7 +18,7 @@ interface Player {
 interface ChatMsg { id: string; from: string; text: string; at: number }
 
 interface Props {
-  onStart: (info: { themeId: ThemeId; roomCode: string; me: Player; players: Player[]; channel: RealtimeChannel }) => void;
+  onStart: (info: { themeId: ThemeId; roomCode: string; me: Player; players: Player[]; channel: RealtimeChannel; raceId: string; startAt: number }) => void;
   onBack: () => void;
 }
 
@@ -38,6 +38,7 @@ const MultiplayerLobby = ({ onStart, onBack }: Props) => {
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const meRef = useRef<Player | null>(null);
+  const startingRef = useRef(false);
 
   const me = meRef.current;
 
@@ -57,6 +58,7 @@ const MultiplayerLobby = ({ onStart, onBack }: Props) => {
     const myColor = COLORS[Math.floor(Math.random() * COLORS.length)];
     const meP: Player = { id: myId, name: name.trim(), color: myColor, isHost: host };
     meRef.current = meP;
+    startingRef.current = false;
 
     const channel = supabase.channel(`race:${code}`, {
       config: { presence: { key: myId } },
@@ -67,7 +69,7 @@ const MultiplayerLobby = ({ onStart, onBack }: Props) => {
       const list: Player[] = [];
       let currentTheme: ThemeId | null = null;
       Object.values(state).forEach((arr) => {
-        arr.forEach((p: any) => {
+        (arr as Array<Player & { themeId?: ThemeId }>).forEach((p) => {
           list.push({ id: p.id, name: p.name, color: p.color, isHost: p.isHost });
           if (p.isHost && p.themeId) currentTheme = p.themeId;
         });
@@ -85,13 +87,41 @@ const MultiplayerLobby = ({ onStart, onBack }: Props) => {
       if (!host) setThemeId((payload as any).themeId);
     });
 
-    channel.on("broadcast", { event: "start" }, ({ payload }) => {
-      const info = payload as { themeId: ThemeId };
+    const collectPlayers = () => {
       const state = channel.presenceState<Player>();
       const list: Player[] = [];
-      Object.values(state).forEach((arr) => arr.forEach((p: any) =>
+      Object.values(state).forEach((arr) => (arr as Player[]).forEach((p: any) =>
         list.push({ id: p.id, name: p.name, color: p.color, isHost: p.isHost })));
-      onStart({ themeId: info.themeId, roomCode: code, me: meP, players: list, channel });
+      return list.sort((a, b) => (a.isHost ? -1 : b.isHost ? 1 : a.id.localeCompare(b.id)));
+    };
+
+    const beginRace = (info: { themeId: ThemeId; raceId?: string; startAt?: number; players?: Player[] }) => {
+      if (startingRef.current) return;
+      startingRef.current = true;
+      const merged = new Map<string, Player>();
+      if (Array.isArray(info.players)) info.players.forEach((p) => merged.set(p.id, p));
+      collectPlayers().forEach((p) => merged.set(p.id, p));
+      const list = [...merged.values()].sort((a, b) => (a.isHost ? -1 : b.isHost ? 1 : a.id.localeCompare(b.id)));
+      channelRef.current = null;
+      onStart({
+        themeId: info.themeId,
+        roomCode: code,
+        me: meP,
+        players: list,
+        channel,
+        raceId: info.raceId || crypto.randomUUID(),
+        startAt: info.startAt || Date.now() + 500,
+      });
+    };
+
+    channel.on("broadcast", { event: "start" }, ({ payload }) => {
+      beginRace(payload as { themeId: ThemeId; raceId?: string; startAt?: number; players?: Player[] });
+    });
+
+    channel.on("broadcast", { event: "race_status" }, ({ payload }) => {
+      const info = payload as { themeId?: ThemeId; raceId?: string; startAt?: number; players?: Player[]; status?: string };
+      if (!info?.themeId || !info.raceId || !["waiting", "racing", "paused"].includes(info.status || "")) return;
+      beginRace({ themeId: info.themeId, raceId: info.raceId, startAt: info.startAt || Date.now(), players: info.players });
     });
 
     await channel.subscribe(async (status) => {
@@ -135,18 +165,19 @@ const MultiplayerLobby = ({ onStart, onBack }: Props) => {
   };
 
   const startRace = async () => {
-    if (!channelRef.current || !isHost) return;
+    if (!channelRef.current || !isHost || startingRef.current) return;
     playClickSound();
-    await channelRef.current.send({ type: "broadcast", event: "start", payload: { themeId } });
-    // Local host also transitions
-    setTimeout(() => {
-      const ch = channelRef.current!;
-      const state = ch.presenceState<Player>();
-      const list: Player[] = [];
-      Object.values(state).forEach((arr) => arr.forEach((p: any) =>
-        list.push({ id: p.id, name: p.name, color: p.color, isHost: p.isHost })));
-      onStart({ themeId, roomCode, me: meRef.current!, players: list, channel: ch });
-    }, 50);
+    const ch = channelRef.current;
+    const state = ch.presenceState<Player>();
+    const list: Player[] = [];
+    Object.values(state).forEach((arr) => (arr as Player[]).forEach((p: any) =>
+      list.push({ id: p.id, name: p.name, color: p.color, isHost: p.isHost })));
+    list.sort((a, b) => (a.isHost ? -1 : b.isHost ? 1 : a.id.localeCompare(b.id)));
+    const payload = { themeId, raceId: crypto.randomUUID(), startAt: Date.now() + 1200, players: list };
+    startingRef.current = true;
+    await ch.send({ type: "broadcast", event: "start", payload });
+    channelRef.current = null;
+    onStart({ themeId, roomCode, me: meRef.current!, players: list, channel: ch, raceId: payload.raceId, startAt: payload.startAt });
   };
 
   const leave = () => {

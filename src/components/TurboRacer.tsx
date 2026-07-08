@@ -14,14 +14,57 @@ import MultiplayerLobby from "./game/MultiplayerLobby";
 import { THEMES, ThemeId, GameTheme } from "./game/themes";
 import { CARS, CarData, getWallet, addToWallet, getSelectedCar, getDiamonds, addDiamonds, addCompletedMission, ABILITIES, getAbilityCharges, useAbilityCharge } from "./game/cars";
 import { playClickSound, playCoinSound, playGhostSound } from "./game/sounds";
+import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 interface MpPlayer { id: string; name: string; color: string; isHost: boolean }
-interface RemoteState { x: number; targetX: number; dist: number; name: string; color: string; lastSeen: number }
+type RaceStatus = "waiting" | "racing" | "paused" | "won" | "lost" | "left";
+interface RemoteState {
+  id: string;
+  x: number;
+  targetX: number;
+  y: number;
+  targetY: number;
+  dist: number;
+  speed: number;
+  name: string;
+  color: string;
+  score: number;
+  coins: number;
+  diamonds: number;
+  lap: number;
+  checkpoint: number;
+  status: RaceStatus;
+  directionX: number;
+  directionY: number;
+  boosting: boolean;
+  abilityActive: boolean;
+  lastSeen: number;
+  seatX: number;
+  seq: number;
+}
+interface MpStanding { id: string; name: string; color: string; score: number; lap: number; checkpoint: number; status: RaceStatus }
 
 const GAME_WIDTH = 420;
 const CAR_W = 50;
 const CAR_H = 80;
+const MAX_MP_PLAYERS = 6;
+const LAP_DISTANCE = 5000;
+const CHECKPOINT_DISTANCE = 1250;
+
+const laneForSeat = (seat: number) => {
+  const usable = GAME_WIDTH - 40 - CAR_W;
+  const i = Math.max(0, Math.min(MAX_MP_PLAYERS - 1, seat));
+  return 20 + (usable * i) / (MAX_MP_PLAYERS - 1);
+};
+
+const sortMpPlayers = (players: MpPlayer[]) => {
+  const unique = new Map<string, MpPlayer>();
+  players.forEach((p) => unique.set(p.id, p));
+  return [...unique.values()]
+    .sort((a, b) => (a.isHost === b.isHost ? a.id.localeCompare(b.id) : a.isHost ? -1 : 1))
+    .slice(0, MAX_MP_PLAYERS);
+};
 
 type GameState = "splash" | "start" | "difficulty" | "lobby" | "mission" | "select" | "garage" | "playing" | "paused" | "won" | "lost";
 
@@ -294,9 +337,15 @@ const TurboRacer = () => {
   const multiplayerRef = useRef<{
     channel: RealtimeChannel;
     me: MpPlayer;
+    players: Map<string, MpPlayer>;
     others: Map<string, RemoteState>;
     frame: number;
+    seq: number;
     mySeatX: number;
+    roomCode: string;
+    raceId: string;
+    startAt: number;
+    lastRaceStatusAt: number;
   } | null>(null);
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
@@ -306,6 +355,7 @@ const TurboRacer = () => {
   const [sensitivity, setSensitivity] = useState(2);
   const [controlLayout, setControlLayout] = useState<ControlLayout>(() => loadLayout());
   const [showCustomize, setShowCustomize] = useState(false);
+  const [mpStandings, setMpStandings] = useState<MpStanding[]>([]);
   useEffect(() => {
     const onResize = () => setControlLayout(loadLayout());
     window.addEventListener("resize", onResize);
@@ -342,6 +392,9 @@ const TurboRacer = () => {
     rafId: 0,
     gameH: 700,
     distance: 0,
+    lap: 1,
+    checkpoint: 1,
+    raceStatus: "racing" as RaceStatus,
     theme: THEMES.rain as GameTheme,
     car: CARS[0] as CarData,
     targetScore: 20000,
@@ -573,6 +626,92 @@ const TurboRacer = () => {
     }, 1200);
   }, []);
 
+  const sendMultiplayerUpdate = useCallback((statusOverride?: RaceStatus) => {
+    const mp = multiplayerRef.current;
+    if (!mp) return;
+    const s = stateRef.current;
+    const status = statusOverride || s.raceStatus;
+    mp.seq = (mp.seq + 1) % Number.MAX_SAFE_INTEGER;
+    try {
+      mp.channel.send({
+        type: "broadcast",
+        event: "car_state",
+        payload: {
+          raceId: mp.raceId,
+          id: mp.me.id,
+          seq: mp.seq,
+          x: s.x,
+          y: s.y,
+          dist: s.distance,
+          speed: s.speed,
+          score: s.score,
+          coins: s.coins,
+          diamonds: s.diamonds,
+          lap: s.lap,
+          checkpoint: s.checkpoint,
+          status,
+          directionX: (s.keys.ArrowRight ? 1 : 0) - (s.keys.ArrowLeft ? 1 : 0),
+          directionY: (s.keys.ArrowDown ? 1 : 0) - (s.keys.ArrowUp ? 1 : 0),
+          boosting: boostActiveRef.current || performance.now() < s.nitroUntil,
+          abilityActive,
+          name: mp.me.name,
+          color: mp.me.color,
+        },
+      });
+
+      const now = performance.now();
+      const ordered = sortMpPlayers([...mp.players.values()]);
+      const electedHost = ordered[0]?.id === mp.me.id;
+      if (electedHost && now - mp.lastRaceStatusAt > 1000) {
+        mp.lastRaceStatusAt = now;
+        mp.channel.send({
+          type: "broadcast",
+          event: "race_status",
+          payload: {
+            raceId: mp.raceId,
+            roomCode: mp.roomCode,
+            themeId: s.theme.id,
+            startAt: mp.startAt,
+            status: status === "waiting" ? "waiting" : "racing",
+            players: ordered,
+          },
+        });
+      }
+    } catch {}
+  }, [abilityActive]);
+
+  const updateMultiplayerStandings = useCallback(() => {
+    const mp = multiplayerRef.current;
+    if (!mp) return;
+    const s = stateRef.current;
+    const rows: MpStanding[] = [{
+      id: mp.me.id,
+      name: mp.me.name,
+      color: mp.me.color,
+      score: s.score,
+      lap: s.lap,
+      checkpoint: s.checkpoint,
+      status: s.raceStatus,
+    }];
+    mp.others.forEach((o) => {
+      if (o.status !== "left") {
+        rows.push({ id: o.id, name: o.name, color: o.color, score: o.score, lap: o.lap, checkpoint: o.checkpoint, status: o.status });
+      }
+    });
+    rows.sort((a, b) => b.score - a.score || b.lap - a.lap || b.checkpoint - a.checkpoint);
+    setMpStandings(rows.slice(0, MAX_MP_PLAYERS));
+  }, []);
+
+  const leaveMultiplayer = useCallback(() => {
+    const mp = multiplayerRef.current;
+    if (!mp) return;
+    stateRef.current.raceStatus = "left";
+    sendMultiplayerUpdate("left");
+    try { supabase.removeChannel(mp.channel); } catch {}
+    multiplayerRef.current = null;
+    setMpStandings([]);
+  }, [sendMultiplayerUpdate]);
+
   const loop = useCallback(() => {
     const s = stateRef.current;
     const canvas = canvasRef.current;
@@ -620,6 +759,71 @@ const TurboRacer = () => {
     }
 
     drawParticles(ctx, s);
+
+    const drawMultiplayerCars = () => {
+      const mp = multiplayerRef.current;
+      if (!mp) return;
+      const now2 = performance.now();
+      mp.others.forEach((o, id) => {
+        if (o.status === "left" || now2 - o.lastSeen > 15000) { mp.others.delete(id); return; }
+        o.x += (o.targetX - o.x) * 0.28;
+        o.y += (o.targetY - o.y) * 0.28;
+        const rawY = o.y + (s.distance - o.dist);
+        const ry = Math.max(24, Math.min(H - CAR_H - 24, rawY));
+        const stale = now2 - o.lastSeen > 3500;
+        ctx.save();
+        if (stale) ctx.globalAlpha = 0.55;
+        drawCar3D(ctx, o.x, ry, o.color, false, o.directionY > 0);
+        if (o.boosting || o.speed > s.baseSpeed + 2) {
+          ctx.fillStyle = "rgba(255,100,0,0.75)";
+          ctx.beginPath();
+          ctx.moveTo(o.x + CAR_W * 0.25, ry + CAR_H);
+          ctx.lineTo(o.x + CAR_W * 0.5, ry + CAR_H + 18 + Math.sin(now2 / 45) * 5);
+          ctx.lineTo(o.x + CAR_W * 0.75, ry + CAR_H);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+
+        ctx.save();
+        const off = rawY < ry ? " ▲" : rawY > ry ? " ▼" : "";
+        const label = `${o.name}${off}${stale ? " OFF" : o.status === "racing" || o.status === "waiting" ? "" : ` ${o.status.toUpperCase()}`}`;
+        ctx.font = "bold 10px monospace";
+        const tw = ctx.measureText(label).width + 8;
+        ctx.fillStyle = "rgba(0,0,0,0.62)";
+        ctx.fillRect(o.x + CAR_W / 2 - tw / 2, ry - 16, tw, 13);
+        ctx.fillStyle = o.color;
+        ctx.textAlign = "center";
+        ctx.fillText(label, o.x + CAR_W / 2, ry - 6);
+        ctx.restore();
+      });
+    };
+
+    const mpWaiting = multiplayerRef.current && Date.now() < multiplayerRef.current.startAt;
+    if (mpWaiting) {
+      s.raceStatus = "waiting";
+      drawMultiplayerCars();
+      drawCar3D(ctx, s.x, s.y, "#ff0000", true);
+      const left = Math.max(0, Math.ceil((multiplayerRef.current!.startAt - Date.now()) / 1000));
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      roundRect(ctx, W / 2 - 72, H * 0.18, 144, 58, 8);
+      ctx.fill();
+      ctx.fillStyle = t.edgeColor;
+      ctx.font = "bold 28px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(left > 0 ? `${left}` : "GO", W / 2, H * 0.18 + 38);
+      ctx.restore();
+      const mp = multiplayerRef.current!;
+      mp.frame = (mp.frame + 1) % 10000;
+      if (mp.frame % 3 === 0) sendMultiplayerUpdate("waiting");
+      if (mp.frame % 10 === 0) updateMultiplayerStandings();
+      s.rafId = requestAnimationFrame(loop);
+      return;
+    } else if (multiplayerRef.current && s.raceStatus === "waiting") {
+      s.raceStatus = "racing";
+      sendMultiplayerUpdate("racing");
+    }
 
     for (const c of s.coins_) {
       c.y += s.speed;
@@ -801,6 +1005,8 @@ const TurboRacer = () => {
         ctx.ellipse(s.x + CAR_W / 2, s.y + CAR_H / 2, 50, 50, 0, 0, Math.PI * 2);
         ctx.fill();
         s.running = false;
+        s.raceStatus = "lost";
+        sendMultiplayerUpdate("lost");
         racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
         addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
@@ -901,6 +1107,8 @@ const TurboRacer = () => {
         ctx.fillStyle = "rgba(0,200,255,0.5)";
         ctx.fillRect(0, 0, W, H);
         s.running = false;
+        s.raceStatus = "lost";
+        sendMultiplayerUpdate("lost");
         racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
         addDiamonds(s.diamonds);
         setTotalWallet(getWallet());
@@ -976,45 +1184,12 @@ const TurboRacer = () => {
     // ===== Multiplayer: render remote players in world space =====
     const mp = multiplayerRef.current;
     if (mp) {
-      const now2 = performance.now();
-      mp.others.forEach((o, id) => {
-        if (now2 - o.lastSeen > 5000) { mp.others.delete(id); return; }
-        // smooth x
-        o.x += (o.targetX - o.x) * 0.2;
-        // remote y relative to our world distance
-        const ry = s.y + (s.distance - o.dist);
-        if (ry < -CAR_H - 40 || ry > H + 40) return;
-        drawCar3D(ctx, o.x, ry, o.color, false, false);
-        // name label
-        ctx.save();
-        ctx.fillStyle = "rgba(0,0,0,0.55)";
-        const label = o.name || "player";
-        ctx.font = "bold 10px monospace";
-        const tw = ctx.measureText(label).width + 8;
-        ctx.fillRect(o.x + CAR_W / 2 - tw / 2, ry - 14, tw, 12);
-        ctx.fillStyle = o.color;
-        ctx.textAlign = "center";
-        ctx.fillText(label, o.x + CAR_W / 2, ry - 4);
-        ctx.restore();
-      });
+      drawMultiplayerCars();
 
-      // Broadcast my position ~15x/s
+      // Broadcast full race/car state ~20x/s
       mp.frame = (mp.frame + 1) % 1000;
-      if (mp.frame % 4 === 0) {
-        try {
-          mp.channel.send({
-            type: "broadcast",
-            event: "pos",
-            payload: {
-              id: mp.me.id,
-              x: s.x,
-              dist: s.distance,
-              name: mp.me.name,
-              color: mp.me.color,
-            },
-          });
-        } catch {}
-      }
+      if (mp.frame % 3 === 0) sendMultiplayerUpdate();
+      if (mp.frame % 10 === 0) updateMultiplayerStandings();
     }
 
     drawCar3D(ctx, s.x, s.y, "#ff0000", true);
@@ -1031,6 +1206,8 @@ const TurboRacer = () => {
     s.score += nitroOn ? 4 : isBoost ? 3 : 1;
     s.speed = (s.baseSpeed + s.car.speed + Math.floor(s.score / 2000)) * mult;
     s.distance += s.speed;
+    s.lap = Math.floor(s.distance / LAP_DISTANCE) + 1;
+    s.checkpoint = Math.floor((s.distance % LAP_DISTANCE) / CHECKPOINT_DISTANCE) + 1;
 
     if (s.score % 10 === 0) {
       setScore(s.score);
@@ -1040,6 +1217,8 @@ const TurboRacer = () => {
 
     if (s.score >= s.targetScore) {
       s.running = false;
+      s.raceStatus = "won";
+      sendMultiplayerUpdate("won");
       racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
       addToWallet(s.coins * 10 + Math.floor(s.score / 10) + s.missionCoinBonus);
       addDiamonds(s.diamonds + s.missionDiamondBonus);
@@ -1053,9 +1232,9 @@ const TurboRacer = () => {
     }
 
     s.rafId = requestAnimationFrame(loop);
-  }, [addCoinPopup]);
+  }, [addCoinPopup, sendMultiplayerUpdate, updateMultiplayerStandings]);
 
-  const startGame = useCallback((themeId: ThemeId) => {
+  const startGame = useCallback((themeId: ThemeId, syncedStartAt?: number) => {
     const s = stateRef.current;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -1081,6 +1260,9 @@ const TurboRacer = () => {
     s.lineOffset = 0;
     s.lampOffset = 0;
     s.distance = 0;
+    s.lap = 1;
+    s.checkpoint = 1;
+    s.raceStatus = multiplayerRef.current && syncedStartAt && Date.now() < syncedStartAt ? "waiting" : "racing";
     s.enemies = [];
     s.coins_ = [];
     s.diamonds_ = [];
@@ -1138,6 +1320,25 @@ const TurboRacer = () => {
     }
 
     s.running = true;
+    if (multiplayerRef.current) {
+      const mp = multiplayerRef.current;
+      mp.startAt = syncedStartAt || Date.now();
+      mp.frame = 0;
+      mp.seq = 0;
+      mp.others.forEach((o) => {
+        o.dist = 0;
+        o.y = s.y;
+        o.targetY = s.y;
+        o.score = 0;
+        o.coins = 0;
+        o.diamonds = 0;
+        o.lap = 1;
+        o.checkpoint = 1;
+        o.status = s.raceStatus;
+        o.lastSeen = performance.now();
+      });
+      updateMultiplayerStandings();
+    }
     setGameState("playing");
     setScore(0);
     setCoins(0);
@@ -1216,6 +1417,17 @@ const TurboRacer = () => {
             </div>
           </div>
 
+          {mpStandings.length > 0 && (
+            <div className="fixed top-14 left-4 z-50 w-40 rounded-md border border-primary/30 bg-background/80 px-2 py-1 font-mono text-[10px]">
+              {mpStandings.map((p, i) => (
+                <div key={p.id} className="flex items-center justify-between gap-1 leading-4">
+                  <span className="truncate" style={{ color: p.color }}>{i + 1}. {p.name}</span>
+                  <span className="text-muted-foreground whitespace-nowrap">L{p.lap} C{p.checkpoint}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Progress bar moved below pause/settings */}
           <div className="fixed top-28 right-4 z-50 w-28">
             <div className="h-2 bg-muted rounded-full overflow-hidden border border-border">
@@ -1233,6 +1445,8 @@ const TurboRacer = () => {
             whileTap={{ scale: 0.9 }}
             onClick={() => {
               playClickSound();
+              stateRef.current.raceStatus = "paused";
+              sendMultiplayerUpdate("paused");
               stateRef.current.running = false;
               racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
               setGameState("paused");
@@ -1400,40 +1614,139 @@ const TurboRacer = () => {
 
         {gameState === "lobby" && (
           <MultiplayerLobby
-            onStart={({ themeId, channel, me, players }) => {
-              // Deterministic seat order for everyone
-              const sorted = [...players].sort((a, b) => a.id.localeCompare(b.id));
-              const n = Math.max(1, sorted.length);
-              const laneFor = (i: number) => {
-                const usable = GAME_WIDTH - 40 - CAR_W;
-                return 20 + (n === 1 ? usable / 2 : (usable * i) / (n - 1));
-              };
-              const mySeat = Math.max(0, sorted.findIndex(p => p.id === me.id));
-              const mySeatX = laneFor(mySeat);
+            onStart={({ themeId, channel, me, players, raceId, startAt, roomCode }) => {
+              const sorted = sortMpPlayers(players);
+              const usedSeats = new Map<string, number>();
+              sorted.forEach((p, i) => usedSeats.set(p.id, i));
+              const mySeat = Math.max(0, usedSeats.get(me.id) ?? sorted.findIndex(p => p.id === me.id));
+              const mySeatX = laneForSeat(mySeat);
+              const playersMap = new Map<string, MpPlayer>();
+              sorted.forEach((p) => playersMap.set(p.id, p));
 
-              const others = new Map<string, RemoteState>();
-              sorted.forEach((p, i) => {
-                if (p.id === me.id) return;
-                const lx = laneFor(i);
-                others.set(p.id, {
-                  x: lx, targetX: lx, dist: 0,
-                  name: p.name, color: p.color, lastSeen: performance.now(),
-                });
-              });
-              channel.on("broadcast", { event: "pos" }, ({ payload }) => {
-                const p = payload as { id: string; x: number; dist: number; name: string; color: string };
-                if (!p || p.id === me.id) return;
-                const prev = others.get(p.id);
-                others.set(p.id, {
-                  x: prev ? prev.x : p.x,
-                  targetX: p.x,
-                  dist: p.dist,
+              const makeRemote = (p: MpPlayer, seat: number, prev?: RemoteState): RemoteState => {
+                const sx = laneForSeat(seat);
+                const sy = window.innerHeight - 150;
+                return {
+                  id: p.id,
+                  x: prev?.x ?? sx,
+                  targetX: prev?.targetX ?? sx,
+                  y: prev?.y ?? sy,
+                  targetY: prev?.targetY ?? sy,
+                  dist: prev?.dist ?? 0,
+                  speed: prev?.speed ?? 0,
                   name: p.name,
                   color: p.color,
-                  lastSeen: performance.now(),
-                });
+                  score: prev?.score ?? 0,
+                  coins: prev?.coins ?? 0,
+                  diamonds: prev?.diamonds ?? 0,
+                  lap: prev?.lap ?? 1,
+                  checkpoint: prev?.checkpoint ?? 1,
+                  status: prev?.status ?? "waiting",
+                  directionX: prev?.directionX ?? 0,
+                  directionY: prev?.directionY ?? 0,
+                  boosting: prev?.boosting ?? false,
+                  abilityActive: prev?.abilityActive ?? false,
+                  lastSeen: prev?.lastSeen ?? performance.now(),
+                  seatX: sx,
+                  seq: prev?.seq ?? -1,
+                };
+              };
+
+              const seatFor = (id: string) => {
+                const existing = usedSeats.get(id);
+                if (existing !== undefined) return existing;
+                const occupied = new Set(usedSeats.values());
+                for (let i = 0; i < MAX_MP_PLAYERS; i++) {
+                  if (!occupied.has(i)) {
+                    usedSeats.set(id, i);
+                    return i;
+                  }
+                }
+                return MAX_MP_PLAYERS - 1;
+              };
+
+              const others = new Map<string, RemoteState>();
+              sorted.forEach((p) => {
+                if (p.id === me.id) return;
+                others.set(p.id, makeRemote(p, seatFor(p.id)));
               });
-              multiplayerRef.current = { channel, me, others, frame: 0, mySeatX };
+
+              const syncPlayers = (incoming: MpPlayer[]) => {
+                const mp = multiplayerRef.current;
+                const merged = sortMpPlayers([...playersMap.values(), ...incoming, me]);
+                merged.forEach((p) => playersMap.set(p.id, p));
+                if (mp) mp.players = playersMap;
+                merged.forEach((p) => {
+                  if (p.id === me.id) return;
+                  const prev = others.get(p.id);
+                  others.set(p.id, makeRemote(p, seatFor(p.id), prev));
+                });
+                updateMultiplayerStandings();
+              };
+
+              channel.on("presence", { event: "sync" }, () => {
+                const state = channel.presenceState<MpPlayer>();
+                const joined: MpPlayer[] = [];
+                Object.values(state).forEach((arr) => (arr as MpPlayer[]).forEach((p: any) => {
+                  if (p?.id && p?.name) joined.push({ id: p.id, name: p.name, color: p.color || "#44dd44", isHost: !!p.isHost });
+                }));
+                syncPlayers(joined);
+              });
+
+              channel.on("presence", { event: "leave" }, ({ key }) => {
+                playersMap.delete(String(key));
+                multiplayerRef.current?.players.delete(String(key));
+                const prev = others.get(String(key));
+                if (prev) others.set(String(key), { ...prev, status: "left", lastSeen: performance.now() });
+                updateMultiplayerStandings();
+              });
+
+              channel.on("broadcast", { event: "car_state" }, ({ payload }) => {
+                const p = payload as Partial<RemoteState> & { raceId?: string; id?: string; seq?: number };
+                if (!p?.id || p.id === me.id || p.raceId !== raceId) return;
+                const player: MpPlayer = { id: p.id, name: p.name || "Racer", color: p.color || "#44dd44", isHost: false };
+                playersMap.set(player.id, player);
+                const prev = others.get(player.id);
+                if (prev && typeof p.seq === "number" && p.seq <= prev.seq) return;
+                const next = makeRemote(player, seatFor(player.id), prev);
+                next.targetX = typeof p.x === "number" ? p.x : next.targetX;
+                next.targetY = typeof p.y === "number" ? p.y : next.targetY;
+                next.dist = typeof p.dist === "number" ? p.dist : next.dist;
+                next.speed = typeof p.speed === "number" ? p.speed : next.speed;
+                next.score = typeof p.score === "number" ? p.score : next.score;
+                next.coins = typeof p.coins === "number" ? p.coins : next.coins;
+                next.diamonds = typeof p.diamonds === "number" ? p.diamonds : next.diamonds;
+                next.lap = typeof p.lap === "number" ? p.lap : next.lap;
+                next.checkpoint = typeof p.checkpoint === "number" ? p.checkpoint : next.checkpoint;
+                next.status = (p.status as RaceStatus) || next.status;
+                next.directionX = typeof p.directionX === "number" ? p.directionX : next.directionX;
+                next.directionY = typeof p.directionY === "number" ? p.directionY : next.directionY;
+                next.boosting = !!p.boosting;
+                next.abilityActive = !!p.abilityActive;
+                next.lastSeen = performance.now();
+                next.seq = typeof p.seq === "number" ? p.seq : next.seq + 1;
+                others.set(player.id, next);
+              });
+
+              channel.on("broadcast", { event: "race_status" }, ({ payload }) => {
+                const info = payload as { raceId?: string; players?: MpPlayer[]; status?: RaceStatus };
+                if (info?.raceId !== raceId) return;
+                if (Array.isArray(info.players)) syncPlayers(info.players);
+              });
+
+              multiplayerRef.current = {
+                channel,
+                me,
+                players: playersMap,
+                others,
+                frame: 0,
+                seq: 0,
+                mySeatX,
+                roomCode,
+                raceId,
+                startAt,
+                lastRaceStatusAt: 0,
+              };
               refreshCar();
               const m = MISSIONS[0];
               setCurrentMission(m);
@@ -1441,7 +1754,7 @@ const TurboRacer = () => {
               stateRef.current.missionId = m.id;
               stateRef.current.missionDiamondBonus = m.diamondBonus;
               stateRef.current.missionCoinBonus = m.coinBonus;
-              startGame(themeId);
+              startGame(themeId, startAt);
             }}
             onBack={() => setGameState("difficulty")}
           />
@@ -1504,8 +1817,10 @@ const TurboRacer = () => {
                   style={{ background: "linear-gradient(135deg, #44dd44, #22aa22)" }}
                   onClick={() => {
                     playClickSound();
+                    stateRef.current.raceStatus = "racing";
                     stateRef.current.running = true;
                     setGameState("playing");
+                    sendMultiplayerUpdate("racing");
                     stateRef.current.rafId = requestAnimationFrame(loop);
                   }}
                 >
@@ -1518,6 +1833,7 @@ const TurboRacer = () => {
                   onClick={() => {
                     playClickSound();
                     stateRef.current.running = false;
+                    leaveMultiplayer();
                     setGameState("mission");
                   }}
                 >
@@ -1556,7 +1872,7 @@ const TurboRacer = () => {
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, hsl(var(--accent)), #ffaa00)" }}
-                  onClick={() => { playClickSound(); startGame(theme.id); }}
+                  onClick={() => { playClickSound(); leaveMultiplayer(); startGame(theme.id); }}
                 >
                   🔄 PLAY AGAIN
                 </motion.button>
@@ -1564,7 +1880,7 @@ const TurboRacer = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-                  onClick={() => { playClickSound(); setGameState("mission"); }}
+                  onClick={() => { playClickSound(); leaveMultiplayer(); setGameState("mission"); }}
                 >
                   🗺️ MISSIONS
                 </motion.button>
@@ -1604,7 +1920,7 @@ const TurboRacer = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-                  onClick={() => { playClickSound(); setGameState("mission"); }}
+                  onClick={() => { playClickSound(); leaveMultiplayer(); setGameState("mission"); }}
                 >
                   🗺️ MISSIONS
                 </motion.button>
@@ -1613,7 +1929,7 @@ const TurboRacer = () => {
                   whileTap={{ scale: 0.95 }}
                   className="w-full px-4 py-3 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, hsl(var(--primary)), #ff6644)" }}
-                  onClick={() => { playClickSound(); startGame(theme.id); }}
+                  onClick={() => { playClickSound(); leaveMultiplayer(); startGame(theme.id); }}
                 >
                   🔄 TRY AGAIN
                 </motion.button>
