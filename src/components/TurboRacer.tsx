@@ -1417,6 +1417,17 @@ const TurboRacer = () => {
             </div>
           </div>
 
+          {mpStandings.length > 0 && (
+            <div className="fixed top-14 left-4 z-50 w-40 rounded-md border border-primary/30 bg-background/80 px-2 py-1 font-mono text-[10px]">
+              {mpStandings.map((p, i) => (
+                <div key={p.id} className="flex items-center justify-between gap-1 leading-4">
+                  <span className="truncate" style={{ color: p.color }}>{i + 1}. {p.name}</span>
+                  <span className="text-muted-foreground whitespace-nowrap">L{p.lap} C{p.checkpoint}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Progress bar moved below pause/settings */}
           <div className="fixed top-28 right-4 z-50 w-28">
             <div className="h-2 bg-muted rounded-full overflow-hidden border border-border">
@@ -1434,6 +1445,8 @@ const TurboRacer = () => {
             whileTap={{ scale: 0.9 }}
             onClick={() => {
               playClickSound();
+              stateRef.current.raceStatus = "paused";
+              sendMultiplayerUpdate("paused");
               stateRef.current.running = false;
               racingMusicRef.current.stop(); horrorMusicRef.current.stop(); horrorOnRef.current = false;
               setGameState("paused");
@@ -1681,6 +1694,8 @@ const TurboRacer = () => {
               });
 
               channel.on("presence", { event: "leave" }, ({ key }) => {
+                playersMap.delete(String(key));
+                multiplayerRef.current?.players.delete(String(key));
                 const prev = others.get(String(key));
                 if (prev) others.set(String(key), { ...prev, status: "left", lastSeen: performance.now() });
                 updateMultiplayerStandings();
@@ -1802,8 +1817,10 @@ const TurboRacer = () => {
                   style={{ background: "linear-gradient(135deg, #44dd44, #22aa22)" }}
                   onClick={() => {
                     playClickSound();
+                    stateRef.current.raceStatus = "racing";
                     stateRef.current.running = true;
                     setGameState("playing");
+                    sendMultiplayerUpdate("racing");
                     stateRef.current.rafId = requestAnimationFrame(loop);
                   }}
                 >
@@ -1816,6 +1833,7 @@ const TurboRacer = () => {
                   onClick={() => {
                     playClickSound();
                     stateRef.current.running = false;
+                    leaveMultiplayer();
                     setGameState("mission");
                   }}
                 >
