@@ -1873,6 +1873,7 @@ const TurboRacer = () => {
                   className="px-4 py-2.5 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, hsl(var(--accent)), #ffaa00)" }}
                   onClick={() => { playClickSound(); startGame(theme.id); }}
+                  onClick={() => { playClickSound(); leaveMultiplayer(); startGame(theme.id); }}
                 >
                   🔄 PLAY AGAIN
                 </motion.button>
@@ -1880,7 +1881,7 @@ const TurboRacer = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-                  onClick={() => { playClickSound(); setGameState("mission"); }}
+                  onClick={() => { playClickSound(); leaveMultiplayer(); setGameState("mission"); }}
                 >
                   🗺️ MISSIONS
                 </motion.button>
@@ -1920,7 +1921,7 @@ const TurboRacer = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-border text-foreground"
-                  onClick={() => { playClickSound(); setGameState("mission"); }}
+                  onClick={() => { playClickSound(); leaveMultiplayer(); setGameState("mission"); }}
                 >
                   🗺️ MISSIONS
                 </motion.button>
@@ -1929,7 +1930,7 @@ const TurboRacer = () => {
                   whileTap={{ scale: 0.95 }}
                   className="w-full px-4 py-3 rounded-xl font-bold text-sm text-primary-foreground"
                   style={{ background: "linear-gradient(135deg, hsl(var(--primary)), #ff6644)" }}
-                  onClick={() => { playClickSound(); startGame(theme.id); }}
+                  onClick={() => { playClickSound(); leaveMultiplayer(); startGame(theme.id); }}
                 >
                   🔄 TRY AGAIN
                 </motion.button>
