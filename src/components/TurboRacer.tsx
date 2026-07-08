@@ -1074,7 +1074,7 @@ const TurboRacer = () => {
     s.score = 0;
     s.coins = 0;
     s.diamonds = 0;
-    s.x = 185;
+    s.x = multiplayerRef.current ? multiplayerRef.current.mySeatX : 185;
     s.y = canvas.height - 150;
     s.baseSpeed = (SENSITIVITY_SPEED[sensitivity] || 5) * (DIFFICULTY_SPEED_MUL[getDifficulty()] || 1);
     s.speed = s.baseSpeed + s.car.speed;
