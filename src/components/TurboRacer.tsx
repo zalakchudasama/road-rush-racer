@@ -17,7 +17,7 @@ import { playClickSound, playCoinSound, playGhostSound } from "./game/sounds";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 interface MpPlayer { id: string; name: string; color: string; isHost: boolean }
-interface RemoteState { x: number; dist: number; name: string; color: string; lastSeen: number }
+interface RemoteState { x: number; targetX: number; dist: number; name: string; color: string; lastSeen: number }
 
 const GAME_WIDTH = 420;
 const CAR_W = 50;
@@ -296,6 +296,7 @@ const TurboRacer = () => {
     me: MpPlayer;
     others: Map<string, RemoteState>;
     frame: number;
+    mySeatX: number;
   } | null>(null);
   const [gameState, setGameState] = useState<GameState>("splash");
   const [score, setScore] = useState(0);
