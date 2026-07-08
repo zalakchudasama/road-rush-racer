@@ -979,6 +979,8 @@ const TurboRacer = () => {
       const now2 = performance.now();
       mp.others.forEach((o, id) => {
         if (now2 - o.lastSeen > 5000) { mp.others.delete(id); return; }
+        // smooth x
+        o.x += (o.targetX - o.x) * 0.2;
         // remote y relative to our world distance
         const ry = s.y + (s.distance - o.dist);
         if (ry < -CAR_H - 40 || ry > H + 40) return;
@@ -1398,17 +1400,40 @@ const TurboRacer = () => {
 
         {gameState === "lobby" && (
           <MultiplayerLobby
-            onStart={({ themeId, channel, me }) => {
-              // Wire up realtime multiplayer for the race
+            onStart={({ themeId, channel, me, players }) => {
+              // Deterministic seat order for everyone
+              const sorted = [...players].sort((a, b) => a.id.localeCompare(b.id));
+              const n = Math.max(1, sorted.length);
+              const laneFor = (i: number) => {
+                const usable = GAME_WIDTH - 40 - CAR_W;
+                return 20 + (n === 1 ? usable / 2 : (usable * i) / (n - 1));
+              };
+              const mySeat = Math.max(0, sorted.findIndex(p => p.id === me.id));
+              const mySeatX = laneFor(mySeat);
+
               const others = new Map<string, RemoteState>();
+              sorted.forEach((p, i) => {
+                if (p.id === me.id) return;
+                const lx = laneFor(i);
+                others.set(p.id, {
+                  x: lx, targetX: lx, dist: 0,
+                  name: p.name, color: p.color, lastSeen: performance.now(),
+                });
+              });
               channel.on("broadcast", { event: "pos" }, ({ payload }) => {
                 const p = payload as { id: string; x: number; dist: number; name: string; color: string };
                 if (!p || p.id === me.id) return;
+                const prev = others.get(p.id);
                 others.set(p.id, {
-                  x: p.x, dist: p.dist, name: p.name, color: p.color, lastSeen: performance.now(),
+                  x: prev ? prev.x : p.x,
+                  targetX: p.x,
+                  dist: p.dist,
+                  name: p.name,
+                  color: p.color,
+                  lastSeen: performance.now(),
                 });
               });
-              multiplayerRef.current = { channel, me, others, frame: 0 };
+              multiplayerRef.current = { channel, me, others, frame: 0, mySeatX };
               refreshCar();
               const m = MISSIONS[0];
               setCurrentMission(m);
