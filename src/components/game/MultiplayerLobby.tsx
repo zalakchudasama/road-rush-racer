@@ -69,7 +69,7 @@ const MultiplayerLobby = ({ onStart, onBack }: Props) => {
       const list: Player[] = [];
       let currentTheme: ThemeId | null = null;
       Object.values(state).forEach((arr) => {
-        arr.forEach((p: any) => {
+        (arr as Array<Player & { themeId?: ThemeId }>).forEach((p) => {
           list.push({ id: p.id, name: p.name, color: p.color, isHost: p.isHost });
           if (p.isHost && p.themeId) currentTheme = p.themeId;
         });
