@@ -336,6 +336,7 @@ const TurboRacer = () => {
   const wasRunningBeforeCustomizeRef = useRef(false);
   const multiplayerRef = useRef<{
     channel: RealtimeChannel;
+    lobbyChannel?: RealtimeChannel;
     me: MpPlayer;
     players: Map<string, MpPlayer>;
     others: Map<string, RemoteState>;
@@ -664,7 +665,7 @@ const TurboRacer = () => {
       const electedHost = ordered[0]?.id === mp.me.id;
       if (electedHost && now - mp.lastRaceStatusAt > 1000) {
         mp.lastRaceStatusAt = now;
-        mp.channel.send({
+        (mp.lobbyChannel || mp.channel).send({
           type: "broadcast",
           event: "race_status",
           payload: {
@@ -708,6 +709,9 @@ const TurboRacer = () => {
     stateRef.current.raceStatus = "left";
     sendMultiplayerUpdate("left");
     try { supabase.removeChannel(mp.channel); } catch {}
+    if (mp.lobbyChannel && mp.lobbyChannel !== mp.channel) {
+      try { supabase.removeChannel(mp.lobbyChannel); } catch {}
+    }
     multiplayerRef.current = null;
     setMpStandings([]);
   }, [sendMultiplayerUpdate]);
@@ -1615,13 +1619,19 @@ const TurboRacer = () => {
         {gameState === "lobby" && (
           <MultiplayerLobby
             onStart={({ themeId, channel, me, players, raceId, startAt, roomCode }) => {
-              const sorted = sortMpPlayers(players);
+              const sorted = sortMpPlayers(players.length ? players : [me]);
               const usedSeats = new Map<string, number>();
               sorted.forEach((p, i) => usedSeats.set(p.id, i));
               const mySeat = Math.max(0, usedSeats.get(me.id) ?? sorted.findIndex(p => p.id === me.id));
               const mySeatX = laneForSeat(mySeat);
               const playersMap = new Map<string, MpPlayer>();
               sorted.forEach((p) => playersMap.set(p.id, p));
+              const gameChannel = supabase.channel(`race-game:${roomCode}:${raceId}`, {
+                config: {
+                  presence: { key: me.id },
+                  broadcast: { self: false, ack: false },
+                },
+              });
 
               const makeRemote = (p: MpPlayer, seat: number, prev?: RemoteState): RemoteState => {
                 const sx = laneForSeat(seat);
@@ -1684,8 +1694,8 @@ const TurboRacer = () => {
                 updateMultiplayerStandings();
               };
 
-              channel.on("presence", { event: "sync" }, () => {
-                const state = channel.presenceState<MpPlayer>();
+              gameChannel.on("presence", { event: "sync" }, () => {
+                const state = gameChannel.presenceState<MpPlayer>();
                 const joined: MpPlayer[] = [];
                 Object.values(state).forEach((arr) => (arr as MpPlayer[]).forEach((p: any) => {
                   if (p?.id && p?.name) joined.push({ id: p.id, name: p.name, color: p.color || "#44dd44", isHost: !!p.isHost });
@@ -1693,7 +1703,7 @@ const TurboRacer = () => {
                 syncPlayers(joined);
               });
 
-              channel.on("presence", { event: "leave" }, ({ key }) => {
+              gameChannel.on("presence", { event: "leave" }, ({ key }) => {
                 playersMap.delete(String(key));
                 multiplayerRef.current?.players.delete(String(key));
                 const prev = others.get(String(key));
@@ -1701,7 +1711,7 @@ const TurboRacer = () => {
                 updateMultiplayerStandings();
               });
 
-              channel.on("broadcast", { event: "car_state" }, ({ payload }) => {
+              gameChannel.on("broadcast", { event: "car_state" }, ({ payload }) => {
                 const p = payload as Partial<RemoteState> & { raceId?: string; id?: string; seq?: number };
                 if (!p?.id || p.id === me.id || p.raceId !== raceId) return;
                 const player: MpPlayer = { id: p.id, name: p.name || "Racer", color: p.color || "#44dd44", isHost: false };
@@ -1728,14 +1738,15 @@ const TurboRacer = () => {
                 others.set(player.id, next);
               });
 
-              channel.on("broadcast", { event: "race_status" }, ({ payload }) => {
+              gameChannel.on("broadcast", { event: "race_status" }, ({ payload }) => {
                 const info = payload as { raceId?: string; players?: MpPlayer[]; status?: RaceStatus };
                 if (info?.raceId !== raceId) return;
                 if (Array.isArray(info.players)) syncPlayers(info.players);
               });
 
               multiplayerRef.current = {
-                channel,
+                channel: gameChannel,
+                lobbyChannel: channel,
                 me,
                 players: playersMap,
                 others,
@@ -1747,14 +1758,31 @@ const TurboRacer = () => {
                 startAt,
                 lastRaceStatusAt: 0,
               };
-              refreshCar();
+              let gameStarted = false;
+              const beginSyncedGame = () => {
+                if (gameStarted) return;
+                gameStarted = true;
+                refreshCar();
+                startGame(themeId, startAt);
+                window.setTimeout(() => sendMultiplayerUpdate(Date.now() < startAt ? "waiting" : "racing"), 80);
+              };
+
+              gameChannel.subscribe(async (status) => {
+                if (status === "SUBSCRIBED") {
+                  await gameChannel.track(me);
+                  syncPlayers([...playersMap.values(), me]);
+                  beginSyncedGame();
+                }
+              });
+
+              window.setTimeout(beginSyncedGame, 1800);
+
               const m = MISSIONS[0];
               setCurrentMission(m);
               stateRef.current.targetScore = m.target;
               stateRef.current.missionId = m.id;
               stateRef.current.missionDiamondBonus = m.diamondBonus;
               stateRef.current.missionCoinBonus = m.coinBonus;
-              startGame(themeId, startAt);
             }}
             onBack={() => setGameState("difficulty")}
           />
