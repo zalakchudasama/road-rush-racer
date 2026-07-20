@@ -1484,11 +1484,11 @@ const TurboRacer = () => {
           </div>
 
           {mpStandings.length > 0 && (
-            <div className="fixed top-14 left-4 z-50 w-40 rounded-md border border-primary/30 bg-background/80 px-2 py-1 font-mono text-[10px]">
+            <div className="fixed top-14 left-4 z-50 w-44 rounded-md border border-primary/30 bg-background/80 px-2 py-1 font-mono text-[10px]">
               {mpStandings.map((p, i) => (
                 <div key={p.id} className="flex items-center justify-between gap-1 leading-4">
                   <span className="truncate" style={{ color: p.color }}>{i + 1}. {p.name}</span>
-                  <span className="text-muted-foreground whitespace-nowrap">L{p.lap} C{p.checkpoint}</span>
+                  <span className="whitespace-nowrap" style={{ color: p.color }}>🏁 {p.score}</span>
                 </div>
               ))}
             </div>
