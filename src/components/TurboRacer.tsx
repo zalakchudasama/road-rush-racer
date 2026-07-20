@@ -773,9 +773,38 @@ const TurboRacer = () => {
         if (o.status === "left" || now2 - o.lastSeen > 15000) { mp.others.delete(id); return; }
         o.x += (o.targetX - o.x) * 0.28;
         o.y += (o.targetY - o.y) * 0.28;
+        // World-space Y relative to local camera: remote's world dist offset from local.
         const rawY = o.y + (s.distance - o.dist);
-        const ry = Math.max(24, Math.min(H - CAR_H - 24, rawY));
         const stale = now2 - o.lastSeen > 3500;
+
+        // Off-screen: draw only a small edge marker with name+score so player knows where remote is.
+        if (rawY < -CAR_H || rawY > H + 4) {
+          const atTop = rawY < 0;
+          const edgeY = atTop ? 6 : H - 22;
+          ctx.save();
+          ctx.globalAlpha = stale ? 0.5 : 0.9;
+          ctx.fillStyle = o.color;
+          ctx.beginPath();
+          const tipY = atTop ? edgeY : edgeY + 14;
+          const baseY = atTop ? edgeY + 14 : edgeY;
+          ctx.moveTo(o.x + CAR_W / 2, tipY);
+          ctx.lineTo(o.x + CAR_W / 2 - 8, baseY);
+          ctx.lineTo(o.x + CAR_W / 2 + 8, baseY);
+          ctx.closePath();
+          ctx.fill();
+          ctx.font = "bold 10px monospace";
+          ctx.textAlign = "center";
+          const lbl = `${o.name} ${o.score}`;
+          const tw = ctx.measureText(lbl).width + 8;
+          ctx.fillStyle = "rgba(0,0,0,0.65)";
+          ctx.fillRect(o.x + CAR_W / 2 - tw / 2, atTop ? edgeY + 16 : edgeY - 14, tw, 12);
+          ctx.fillStyle = o.color;
+          ctx.fillText(lbl, o.x + CAR_W / 2, atTop ? edgeY + 25 : edgeY - 5);
+          ctx.restore();
+          return;
+        }
+
+        const ry = rawY;
         ctx.save();
         if (stale) ctx.globalAlpha = 0.55;
         drawCar3D(ctx, o.x, ry, o.color, false, o.directionY > 0);
@@ -791,8 +820,7 @@ const TurboRacer = () => {
         ctx.restore();
 
         ctx.save();
-        const off = rawY < ry ? " ▲" : rawY > ry ? " ▼" : "";
-        const label = `${o.name}${off}${stale ? " OFF" : o.status === "racing" || o.status === "waiting" ? "" : ` ${o.status.toUpperCase()}`}`;
+        const label = `${o.name} ${o.score}${stale ? " OFF" : ""}`;
         ctx.font = "bold 10px monospace";
         const tw = ctx.measureText(label).width + 8;
         ctx.fillStyle = "rgba(0,0,0,0.62)";
