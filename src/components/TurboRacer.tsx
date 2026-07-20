@@ -1225,6 +1225,38 @@ const TurboRacer = () => {
       if (mp.frame % 10 === 0) updateMultiplayerStandings();
     }
 
+    // ==== Finish line (multiplayer) ====
+    if (mp) {
+      const remaining = MP_FINISH_DISTANCE - s.distance;
+      const finishScreenY = s.y - remaining;
+      if (finishScreenY > -40 && finishScreenY < H + 40) {
+        // checkered band
+        const bandH = 18;
+        const cols = 12;
+        const cw = (W - 16) / cols;
+        for (let i = 0; i < cols; i++) {
+          ctx.fillStyle = i % 2 === 0 ? "#ffffff" : "#000000";
+          ctx.fillRect(8 + i * cw, finishScreenY, cw, bandH / 2);
+          ctx.fillStyle = i % 2 === 0 ? "#000000" : "#ffffff";
+          ctx.fillRect(8 + i * cw, finishScreenY + bandH / 2, cw, bandH / 2);
+        }
+        ctx.fillStyle = "rgba(255,215,0,0.95)";
+        ctx.font = "bold 12px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("🏁 FINISH", W / 2, finishScreenY - 4);
+      } else if (remaining > 0) {
+        // Distance-to-finish indicator top-center
+        ctx.save();
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(W / 2 - 46, 4, 92, 16);
+        ctx.fillStyle = "#ffd700";
+        ctx.font = "bold 11px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(`FIN ${Math.max(0, Math.floor(remaining))}`, W / 2, 16);
+        ctx.restore();
+      }
+    }
+
     drawCar3D(ctx, s.x, s.y, "#ff0000", true);
 
     const moveSpeed = s.speed;
@@ -1248,7 +1280,8 @@ const TurboRacer = () => {
       setDiamonds_(s.diamonds);
     }
 
-    if (s.score >= s.targetScore) {
+    const mpFinished = !!mp && s.distance >= MP_FINISH_DISTANCE;
+    if (s.score >= s.targetScore || mpFinished) {
       s.running = false;
       s.raceStatus = "won";
       sendMultiplayerUpdate("won");
