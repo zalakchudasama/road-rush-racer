@@ -51,6 +51,7 @@ const CAR_H = 80;
 const MAX_MP_PLAYERS = 6;
 const LAP_DISTANCE = 5000;
 const CHECKPOINT_DISTANCE = 1250;
+const MP_FINISH_DISTANCE = 25000;
 
 const laneForSeat = (seat: number) => {
   const usable = GAME_WIDTH - 40 - CAR_W;
